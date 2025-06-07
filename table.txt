@@ -1,1 +1,8 @@
 im_friendship (app_id, from_id, to_id)
+im_friendship_group (app_id, from_id, group_name)
+im_friendship_group_member group_id | (group_id, to_id)
+
+im_group (app_id, group_id)
+im_group_member group_member_id
+
+im_user_data (app_id, user_id)
