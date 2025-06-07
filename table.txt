@@ -1,0 +1,1 @@
+im_friendship (app_id, from_id, to_id)
