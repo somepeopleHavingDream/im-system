@@ -13,14 +13,20 @@ import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import lombok.extern.slf4j.Slf4j;
+import org.yangxin.im.codec.config.BootstrapConfig;
 
 @Slf4j
 public class ImWebSocketServer {
-    public ImWebSocketServer(int port) {
-        EventLoopGroup mainGroup = new NioEventLoopGroup();
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
+    private final BootstrapConfig.TcpConfig config;
+    private final ServerBootstrap bootstrap;
 
-        ServerBootstrap bootstrap = new ServerBootstrap();
+    public ImWebSocketServer(BootstrapConfig.TcpConfig config) {
+        this.config = config;
+
+        EventLoopGroup mainGroup = new NioEventLoopGroup(config.getBossThreadSize());
+        EventLoopGroup workerGroup = new NioEventLoopGroup(config.getWorkThreadSize());
+
+        bootstrap = new ServerBootstrap();
         bootstrap.group(mainGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
                 .option(ChannelOption.SO_BACKLOG, 10240)
@@ -46,8 +52,9 @@ public class ImWebSocketServer {
                         pipeline.addLast(new WebSocketServerProtocolHandler("/ws"));
                     }
                 });
-        bootstrap.bind(port);
+    }
 
-        log.info("web start.");
+    public void start() {
+        bootstrap.bind(config.getWebSocketPort());
     }
 }

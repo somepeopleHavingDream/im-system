@@ -7,15 +7,19 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
+import org.yangxin.im.codec.config.BootstrapConfig;
 
 public class ImServer {
-    private int port;
+    private final BootstrapConfig.TcpConfig config;
+    private final ServerBootstrap bootstrap;
 
-    public ImServer(int port) {
-        EventLoopGroup mainGroup = new NioEventLoopGroup();
-        EventLoopGroup workerGroup = new NioEventLoopGroup();
+    public ImServer(BootstrapConfig.TcpConfig config) {
+        this.config = config;
 
-        ServerBootstrap bootstrap = new ServerBootstrap();
+        EventLoopGroup mainGroup = new NioEventLoopGroup(config.getBossThreadSize());
+        EventLoopGroup workerGroup = new NioEventLoopGroup(config.getWorkThreadSize());
+
+        bootstrap = new ServerBootstrap();
         bootstrap.group(mainGroup, workerGroup)
                 .channel(NioServerSocketChannel.class)
                 .option(ChannelOption.SO_BACKLOG, 10240)
@@ -27,6 +31,9 @@ public class ImServer {
                     protected void initChannel(SocketChannel socketChannel) {
                     }
                 });
-        bootstrap.bind(port);
+    }
+
+    public void start() {
+        bootstrap.bind(config.getTcpPort());
     }
 }
