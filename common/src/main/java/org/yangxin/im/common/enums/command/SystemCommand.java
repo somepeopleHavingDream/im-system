@@ -4,7 +4,12 @@ public enum SystemCommand implements Command {
     /**
      * 登录
      */
-    LOGIN(0x2328);
+    LOGIN(0x2328),
+
+    /**
+     * 登出
+     */
+    LOGOUT(0x232b);
 
     private final int command;
 

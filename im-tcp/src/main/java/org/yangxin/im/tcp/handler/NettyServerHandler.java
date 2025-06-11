@@ -24,7 +24,9 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
         // 登录 command
         if (command == SystemCommand.LOGIN.getCommand()) {
             LoginPack loginPack = JSON.parseObject(JSON.toJSONString(msg.getMessagePack()), LoginPack.class);
-            ctx.channel().attr(AttributeKey.valueOf("userId")).set(loginPack.getUserId());
+            ctx.channel().attr(AttributeKey.valueOf(Constants.UserId)).set(loginPack.getUserId());
+            ctx.channel().attr(AttributeKey.valueOf(Constants.AppId)).set(msg.getMessageHeader().getAppId());
+            ctx.channel().attr(AttributeKey.valueOf(Constants.ClientType)).set(msg.getMessageHeader().getClientType());
             // 将 channel 存起来
 
             // Redis map
@@ -38,8 +40,20 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
             RMap<String, String> map = redissonClient.getMap(msg.getMessageHeader().getAppId() + Constants.RedisConstants.UserSessionConstants + loginPack.getUserId());
             map.put(msg.getMessageHeader().getClientType() + "", JSONObject.toJSONString(userSession));
 
-            SessionSocketHolder.put(loginPack.getUserId(), (NioSocketChannel) ctx.channel());
+            SessionSocketHolder.put(msg.getMessageHeader().getAppId(), loginPack.getUserId(), msg.getMessageHeader().getClientType(), (NioSocketChannel) ctx.channel());
+        } else if (command == SystemCommand.LOGOUT.getCommand()) {
+            // 删除 session
+            String userId = (String) ctx.channel().attr(AttributeKey.valueOf(Constants.UserId)).get();
+            Integer appId = (Integer) ctx.channel().attr(AttributeKey.valueOf(Constants.AppId)).get();
+            Integer clientType = (Integer) ctx.channel().attr(AttributeKey.valueOf(Constants.ClientType)).get();
+            SessionSocketHolder.remove(appId, userId, clientType);
 
+            // redis 删除
+            RedissonClient redissonClient = RedisManager.getRedissonClient();
+            RMap<Object, Object> map = redissonClient.getMap(appId + Constants.RedisConstants.UserSessionConstants + userId);
+            map.remove(clientType);
+
+            ctx.channel().close();
         }
     }
 }

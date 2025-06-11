@@ -16,6 +16,5 @@ public class UserClientDto {
 
     private String userId;
 
-    private String imei;
-
+//    private String imei;
 }
