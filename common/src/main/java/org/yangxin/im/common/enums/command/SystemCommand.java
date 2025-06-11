@@ -2,10 +2,13 @@ package org.yangxin.im.common.enums.command;
 
 public enum SystemCommand implements Command {
     /**
+     * 心跳
+     */
+    PING(0x270f),
+    /**
      * 登录
      */
     LOGIN(0x2328),
-
     /**
      * 登出
      */

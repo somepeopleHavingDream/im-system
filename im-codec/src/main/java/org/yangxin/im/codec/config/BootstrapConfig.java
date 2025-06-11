@@ -11,10 +11,30 @@ public class BootstrapConfig {
 
     @Data
     public static class TcpConfig {
+        /**
+         * tcp 绑定的端口号
+         */
         private Integer tcpPort;
+
+        /**
+         * webSocket 绑定的端口号
+         */
         private Integer webSocketPort;
+
+        /**
+         * boss 线程数，默认为1
+         */
         private Integer bossThreadSize;
+
+        /**
+         * work 线程数
+         */
         private Integer workThreadSize;
+
+        /**
+         * 心跳超时时间，单位：毫秒
+         */
+        private Long heartBeatTime;
 
         /**
          * redis配置
