@@ -3,6 +3,7 @@ package org.yangxin.im.tcp;
 import lombok.extern.slf4j.Slf4j;
 import org.yaml.snakeyaml.Yaml;
 import org.yangxin.im.codec.config.BootstrapConfig;
+import org.yangxin.im.tcp.redis.RedisManager;
 import org.yangxin.im.tcp.server.ImServer;
 import org.yangxin.im.tcp.server.ImWebSocketServer;
 
@@ -26,6 +27,8 @@ public class Starter {
 
             new ImServer(bootstrapConfig.getIm()).start();
             new ImWebSocketServer(bootstrapConfig.getIm()).start();
+
+            RedisManager.init(bootstrapConfig);
         } catch (Exception e) {
             Starter.log.error(e.getMessage(), e);
             System.exit(500);
