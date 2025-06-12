@@ -3,9 +3,11 @@ package org.yangxin.im.tcp;
 import lombok.extern.slf4j.Slf4j;
 import org.yaml.snakeyaml.Yaml;
 import org.yangxin.im.codec.config.BootstrapConfig;
+import org.yangxin.im.tcp.receive.MessageReceiver;
 import org.yangxin.im.tcp.redis.RedisManager;
 import org.yangxin.im.tcp.server.ImServer;
 import org.yangxin.im.tcp.server.ImWebSocketServer;
+import org.yangxin.im.tcp.util.MqFactory;
 
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -29,6 +31,8 @@ public class Starter {
             new ImWebSocketServer(bootstrapConfig.getIm()).start();
 
             RedisManager.init(bootstrapConfig);
+            MqFactory.init(bootstrapConfig.getIm().getRabbitmq());
+            MessageReceiver.init();
         } catch (Exception e) {
             Starter.log.error(e.getMessage(), e);
             System.exit(500);

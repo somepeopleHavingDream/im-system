@@ -16,3 +16,9 @@ im:
     poolSize: 10
     single:
       address: 127.0.0.1:6379
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    virtualHost: /
+    userName: guest
+    password: guest
