@@ -45,6 +45,11 @@ public class BootstrapConfig {
          * rabbitmq 配置
          */
         private Rabbitmq rabbitmq;
+
+        /**
+         * zk配置
+         */
+        private ZkConfig zkConfig;
     }
 
     @Data
@@ -120,5 +125,18 @@ public class BootstrapConfig {
         private String userName;
 
         private String password;
+    }
+
+    @Data
+    public static class ZkConfig {
+        /**
+         * zk连接地址
+         */
+        private String zkAddr;
+
+        /**
+         * zk连接超时时间
+         */
+        private Integer zkConnectTimeOut;
     }
 }
