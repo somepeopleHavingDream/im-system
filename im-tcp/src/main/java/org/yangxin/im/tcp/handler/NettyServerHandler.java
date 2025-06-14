@@ -6,6 +6,7 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.AttributeKey;
+import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.yangxin.im.codec.pack.LoginPack;
@@ -17,7 +18,17 @@ import org.yangxin.im.common.model.UserSession;
 import org.yangxin.im.tcp.redis.RedisManager;
 import org.yangxin.im.tcp.util.SessionSocketHolder;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
+@Slf4j
 public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
+    private final Integer brokerId;
+
+    public NettyServerHandler(Integer brokerId) {
+        this.brokerId = brokerId;
+    }
+
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, Message msg) {
         Integer command = msg.getMessageHeader().getCommand();
@@ -35,6 +46,13 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
             userSession.setClientType(msg.getMessageHeader().getClientType());
             userSession.setUserId(loginPack.getUserId());
             userSession.setConnectState(ImConnectStatusEnum.ONLINE_STATUS.getCode());
+            userSession.setBrokerId(brokerId);
+            try {
+                InetAddress localHost = InetAddress.getLocalHost();
+                userSession.setBrokerHost(localHost.getHostAddress());
+            } catch (UnknownHostException e) {
+                log.error(e.getMessage(), e);
+            }
 
             RedissonClient redissonClient = RedisManager.getRedissonClient();
             RMap<String, String> map = redissonClient.getMap(msg.getMessageHeader().getAppId() + Constants.RedisConstants.UserSessionConstants + loginPack.getUserId());
