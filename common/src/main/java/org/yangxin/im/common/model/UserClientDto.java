@@ -2,11 +2,6 @@ package org.yangxin.im.common.model;
 
 import lombok.Data;
 
-/**
- * @description:
- * @author: lld
- * @version: 1.0
- */
 @Data
 public class UserClientDto {
 
@@ -16,5 +11,5 @@ public class UserClientDto {
 
     private String userId;
 
-//    private String imei;
+    private String imei;
 }

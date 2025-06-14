@@ -8,12 +8,14 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.AttributeKey;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RMap;
+import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
 import org.yangxin.im.codec.pack.LoginPack;
 import org.yangxin.im.codec.proto.Message;
 import org.yangxin.im.common.constant.Constants;
 import org.yangxin.im.common.enums.ImConnectStatusEnum;
 import org.yangxin.im.common.enums.command.SystemCommand;
+import org.yangxin.im.common.model.UserClientDto;
 import org.yangxin.im.common.model.UserSession;
 import org.yangxin.im.tcp.redis.RedisManager;
 import org.yangxin.im.tcp.util.SessionSocketHolder;
@@ -38,8 +40,9 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
             ctx.channel().attr(AttributeKey.valueOf(Constants.UserId)).set(loginPack.getUserId());
             ctx.channel().attr(AttributeKey.valueOf(Constants.AppId)).set(msg.getMessageHeader().getAppId());
             ctx.channel().attr(AttributeKey.valueOf(Constants.ClientType)).set(msg.getMessageHeader().getClientType());
-            // 将 channel 存起来
+            ctx.channel().attr(AttributeKey.valueOf(Constants.Imei)).set(msg.getMessageHeader().getImei());
 
+            // 将 channel 存起来
             // Redis map
             UserSession userSession = new UserSession();
             userSession.setAppId(msg.getMessageHeader().getAppId());
@@ -53,12 +56,18 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
             } catch (UnknownHostException e) {
                 log.error(e.getMessage(), e);
             }
-
             RedissonClient redissonClient = RedisManager.getRedissonClient();
             RMap<String, String> map = redissonClient.getMap(msg.getMessageHeader().getAppId() + Constants.RedisConstants.UserSessionConstants + loginPack.getUserId());
-            map.put(msg.getMessageHeader().getClientType() + "", JSONObject.toJSONString(userSession));
+            map.put(msg.getMessageHeader().getClientType() + ":" + msg.getMessageHeader().getImei(), JSONObject.toJSONString(userSession));
+            SessionSocketHolder.put(msg.getMessageHeader().getAppId(), loginPack.getUserId(), msg.getMessageHeader().getClientType(), msg.getMessageHeader().getImei(), (NioSocketChannel) ctx.channel());
 
-            SessionSocketHolder.put(msg.getMessageHeader().getAppId(), loginPack.getUserId(), msg.getMessageHeader().getClientType(), (NioSocketChannel) ctx.channel());
+            UserClientDto dto = new UserClientDto();
+            dto.setImei(msg.getMessageHeader().getImei());
+            dto.setUserId(loginPack.getUserId());
+            dto.setClientType(msg.getMessageHeader().getClientType());
+            dto.setAppId(msg.getMessageHeader().getAppId());
+            RTopic topic = redissonClient.getTopic(Constants.RedisConstants.UserLoginChannel);
+            topic.publish(JSONObject.toJSONString(dto));
         } else if (command == SystemCommand.LOGOUT.getCommand()) {
             SessionSocketHolder.removeUserSession((NioSocketChannel) ctx.channel());
         } else if (command == SystemCommand.PING.getCommand()) {

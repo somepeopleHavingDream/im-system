@@ -12,7 +12,12 @@ public enum SystemCommand implements Command {
     /**
      * 登出
      */
-    LOGOUT(0x232b);
+    LOGOUT(0x232b),
+    /**
+     * 下线通知，用于多端互斥
+     */
+    MUTUALLOGIN(0X232a),
+    ;
 
     private final int command;
 

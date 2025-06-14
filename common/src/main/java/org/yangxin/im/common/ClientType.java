@@ -1,9 +1,8 @@
 package org.yangxin.im.common;
 
-/**
- * @author: Chackylee
- * @description:
- **/
+import lombok.Getter;
+
+@Getter
 public enum ClientType {
 
     WEBAPI(0, "webApi"),
@@ -20,14 +19,6 @@ public enum ClientType {
     ClientType(int code, String error) {
         this.code = code;
         this.error = error;
-    }
-
-    public int getCode() {
-        return code;
-    }
-
-    public String getError() {
-        return error;
     }
 
 

@@ -7,8 +7,8 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.timeout.IdleStateHandler;
 import org.yangxin.im.codec.MessageDecoder;
+import org.yangxin.im.codec.MessageEncoder;
 import org.yangxin.im.codec.config.BootstrapConfig;
 import org.yangxin.im.tcp.handler.HeartBeatHandler;
 import org.yangxin.im.tcp.handler.NettyServerHandler;
@@ -34,7 +34,8 @@ public class ImServer {
                     @Override
                     protected void initChannel(SocketChannel ch) {
                         ch.pipeline().addLast(new MessageDecoder());
-                        ch.pipeline().addLast(new IdleStateHandler(0, 0, 1));
+                        ch.pipeline().addLast(new MessageEncoder());
+//                        ch.pipeline().addLast(new IdleStateHandler(0, 0, 1));
                         ch.pipeline().addLast(new HeartBeatHandler(config.getHeartBeatTime()));
                         ch.pipeline().addLast(new NettyServerHandler(config.getBrokerId()));
                     }

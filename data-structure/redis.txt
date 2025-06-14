@@ -1,0 +1,2 @@
+signal/channel/LOGIN_USER_INNER_QUEUE topic
+${appId}:userSession:${userId} hash ${clientType}:${imei} -> ${userSession}

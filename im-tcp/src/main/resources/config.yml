@@ -6,7 +6,7 @@ im:
   # 心跳超时时间，单位毫秒
   heartBeatTime: 20000
   brokerId: 1000
-
+  loginModel: 3
   redis:
     mode: single
     database: 0
