@@ -1,4 +1,4 @@
-package org.yangxin.im.common.route.algorithm;
+package org.yangxin.im.common.route.algorithm.random;
 
 import org.yangxin.im.common.enums.UserErrorCode;
 import org.yangxin.im.common.exception.ApplicationException;

@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.yangxin.im.common.config.AppConfig;
 import org.yangxin.im.common.route.RouteHandle;
-import org.yangxin.im.common.route.algorithm.RandomHandle;
+import org.yangxin.im.common.route.algorithm.loop.LoopHandle;
 
 @Configuration
 @RequiredArgsConstructor
@@ -21,6 +21,7 @@ public class BeanConfig {
 
     @Bean
     public RouteHandle routeHandle() {
-        return new RandomHandle();
+        return new LoopHandle();
+//        return new RandomHandle();
     }
 }
