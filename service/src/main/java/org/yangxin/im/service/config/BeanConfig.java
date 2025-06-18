@@ -5,10 +5,15 @@ import org.I0Itec.zkclient.ZkClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.yangxin.im.common.config.AppConfig;
+import org.yangxin.im.common.enums.ImUrlRouteWayEnum;
+import org.yangxin.im.common.enums.RouteHashMethodEnum;
 import org.yangxin.im.common.route.RouteHandle;
-import org.yangxin.im.common.route.algorithm.consistenthash.ConsistentHashHandle;
-import org.yangxin.im.common.route.algorithm.consistenthash.TreeMapConsistentHash;
+import org.yangxin.im.common.route.algorithm.consistenthash.AbstractConsistentHash;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+
+@SuppressWarnings("DataFlowIssue")
 @Configuration
 @RequiredArgsConstructor
 public class BeanConfig {
@@ -21,10 +26,23 @@ public class BeanConfig {
     }
 
     @Bean
-    public RouteHandle routeHandle() {
-        TreeMapConsistentHash treeMapConsistentHash = new TreeMapConsistentHash();
-        ConsistentHashHandle consistentHashHandle = new ConsistentHashHandle();
-        consistentHashHandle.setHash(treeMapConsistentHash);
-        return consistentHashHandle;
+    public RouteHandle routeHandle() throws ClassNotFoundException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+        Integer imRouteWay = appConfig.getImRouteWay();
+        String routWay;
+        ImUrlRouteWayEnum handler = ImUrlRouteWayEnum.getHandler(imRouteWay);
+        routWay = handler.getClazz();
+        RouteHandle routeHandle = (RouteHandle) Class.forName(routWay).newInstance();
+        if (handler == ImUrlRouteWayEnum.HASH) {
+            Method setHash = Class.forName(routWay).getMethod("setHash", AbstractConsistentHash.class);
+            Integer consistentHashWay = appConfig.getConsistentHashWay();
+            String hashWay;
+            RouteHashMethodEnum hashHandler = RouteHashMethodEnum.getHandler(consistentHashWay);
+            hashWay = hashHandler.getClazz();
+            AbstractConsistentHash consistentHash
+                    = (AbstractConsistentHash) Class.forName(hashWay).newInstance();
+            setHash.invoke(routeHandle, consistentHash);
+        }
+
+        return routeHandle;
     }
 }
