@@ -6,7 +6,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.yangxin.im.common.config.AppConfig;
 import org.yangxin.im.common.route.RouteHandle;
-import org.yangxin.im.common.route.algorithm.loop.LoopHandle;
+import org.yangxin.im.common.route.algorithm.consistenthash.ConsistentHashHandle;
+import org.yangxin.im.common.route.algorithm.consistenthash.TreeMapConsistentHash;
 
 @Configuration
 @RequiredArgsConstructor
@@ -21,7 +22,9 @@ public class BeanConfig {
 
     @Bean
     public RouteHandle routeHandle() {
-        return new LoopHandle();
-//        return new RandomHandle();
+        TreeMapConsistentHash treeMapConsistentHash = new TreeMapConsistentHash();
+        ConsistentHashHandle consistentHashHandle = new ConsistentHashHandle();
+        consistentHashHandle.setHash(treeMapConsistentHash);
+        return consistentHashHandle;
     }
 }
