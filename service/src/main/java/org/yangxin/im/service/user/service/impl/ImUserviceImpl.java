@@ -19,7 +19,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-@SuppressWarnings("rawtypes")
+@SuppressWarnings({"rawtypes", "CallToPrintStackTrace", "unchecked"})
 @Service
 public class ImUserviceImpl implements ImUserService {
 
@@ -106,7 +106,7 @@ public class ImUserviceImpl implements ImUserService {
             wrapper.eq("app_id", req.getAppId());
             wrapper.eq("user_id", userId);
             wrapper.eq("del_flag", DelFlagEnum.NORMAL.getCode());
-            int update = 0;
+            int update;
 
             try {
                 update = imUserDataMapper.update(entity, wrapper);
