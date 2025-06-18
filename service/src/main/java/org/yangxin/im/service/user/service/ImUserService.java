@@ -2,28 +2,20 @@ package org.yangxin.im.service.user.service;
 
 import org.yangxin.im.common.ResponseVO;
 import org.yangxin.im.service.user.dao.ImUserDataEntity;
-import org.yangxin.im.service.user.model.req.DeleteUserReq;
-import org.yangxin.im.service.user.model.req.GetUserInfoReq;
-import org.yangxin.im.service.user.model.req.ImportUserReq;
-import org.yangxin.im.service.user.model.req.ModifyUserInfoReq;
+import org.yangxin.im.service.user.model.req.*;
 import org.yangxin.im.service.user.model.resp.GetUserInfoResp;
 
-/**
- * @description:
- * @author: lld
- * @version: 1.0
- */
+@SuppressWarnings("rawtypes")
 public interface ImUserService {
+    ResponseVO importUser(ImportUserReq req);
 
-    public ResponseVO importUser(ImportUserReq req);
+    ResponseVO<GetUserInfoResp> getUserInfo(GetUserInfoReq req);
 
-    public ResponseVO<GetUserInfoResp> getUserInfo(GetUserInfoReq req);
+    ResponseVO<ImUserDataEntity> getSingleUserInfo(String userId, Integer appId);
 
-    public ResponseVO<ImUserDataEntity> getSingleUserInfo(String userId, Integer appId);
+    ResponseVO deleteUser(DeleteUserReq req);
 
-    public ResponseVO deleteUser(DeleteUserReq req);
+    ResponseVO modifyUserInfo(ModifyUserInfoReq req);
 
-    public ResponseVO modifyUserInfo(ModifyUserInfoReq req);
-
-
+    ResponseVO login(LoginReq req);
 }

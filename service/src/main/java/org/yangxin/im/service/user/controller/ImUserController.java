@@ -1,25 +1,32 @@
 package org.yangxin.im.service.user.controller;
 
-import org.yangxin.im.common.ResponseVO;
-import org.yangxin.im.service.user.model.req.*;
-import org.yangxin.im.service.user.service.ImUserService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.yangxin.im.common.ClientType;
+import org.yangxin.im.common.ResponseVO;
+import org.yangxin.im.common.route.RouteHandle;
+import org.yangxin.im.common.route.RouteInfo;
+import org.yangxin.im.common.util.RouteInfoParseUtil;
+import org.yangxin.im.service.user.model.req.DeleteUserReq;
+import org.yangxin.im.service.user.model.req.ImportUserReq;
+import org.yangxin.im.service.user.model.req.LoginReq;
+import org.yangxin.im.service.user.service.ImUserService;
+import org.yangxin.im.service.util.ZKit;
+
+import java.util.List;
 
 
-/**
- * @description:
- * @author: lld
- * @version: 1.0
- */
+@SuppressWarnings("rawtypes")
 @RestController
 @RequestMapping("v1/user")
+@RequiredArgsConstructor
 public class ImUserController {
-    @Autowired
-    ImUserService imUserService;
+    private final ImUserService imUserService;
+    private final RouteHandle routeHandle;
+    private final ZKit zkKit;
 
     @RequestMapping("importUser")
     public ResponseVO importUser(@RequestBody ImportUserReq req, Integer appId) {
@@ -32,4 +39,21 @@ public class ImUserController {
         return imUserService.deleteUser(req);
     }
 
+    @RequestMapping("/login")
+    public ResponseVO login(@RequestBody @Validated LoginReq req, Integer appId) {
+        req.setAppId(appId);
+        ResponseVO login = imUserService.login(req);
+        if (login.isOk()) {
+            List<String> allNode;
+            if (req.getClientType() == ClientType.WEB.getCode()) {
+                allNode = zkKit.getAllWebNode();
+            } else {
+                allNode = zkKit.getAllTcpNode();
+            }
+            String s = routeHandle.routeServer(allNode, req.getUserId());
+            RouteInfo parse = RouteInfoParseUtil.parse(s);
+            return ResponseVO.successResponse(parse);
+        }
+        return ResponseVO.errorResponse();
+    }
 }

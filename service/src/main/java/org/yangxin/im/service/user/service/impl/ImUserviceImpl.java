@@ -1,40 +1,33 @@
 package org.yangxin.im.service.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import org.springframework.beans.BeanUtils;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.yangxin.im.common.ResponseVO;
 import org.yangxin.im.common.enums.DelFlagEnum;
 import org.yangxin.im.common.enums.UserErrorCode;
 import org.yangxin.im.common.exception.ApplicationException;
-import org.yangxin.im.service.group.service.ImGroupService;
 import org.yangxin.im.service.user.dao.ImUserDataEntity;
 import org.yangxin.im.service.user.dao.mapper.ImUserDataMapper;
 import org.yangxin.im.service.user.model.req.*;
 import org.yangxin.im.service.user.model.resp.GetUserInfoResp;
 import org.yangxin.im.service.user.model.resp.ImportUserResp;
 import org.yangxin.im.service.user.service.ImUserService;
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
-/**
- * @description:
- * @author: lld
- * @version: 1.0
- */
+@SuppressWarnings("rawtypes")
 @Service
 public class ImUserviceImpl implements ImUserService {
 
-    @Autowired
-    ImUserDataMapper imUserDataMapper;
+    private final ImUserDataMapper imUserDataMapper;
 
-
-    @Autowired
-    ImGroupService imGroupService;
+    public ImUserviceImpl(ImUserDataMapper imUserDataMapper) {
+        this.imUserDataMapper = imUserDataMapper;
+    }
 
     @Override
     public ResponseVO importUser(ImportUserReq req) {
@@ -148,6 +141,11 @@ public class ImUserviceImpl implements ImUserService {
         int update1 = imUserDataMapper.update(update, query);
         if (update1 == 1) return ResponseVO.successResponse();
         throw new ApplicationException(UserErrorCode.MODIFY_USER_ERROR);
+    }
+
+    @Override
+    public ResponseVO login(LoginReq req) {
+        return ResponseVO.successResponse();
     }
 
 }
