@@ -1,10 +1,14 @@
 package org.yangxin.im.service.user.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.yangxin.im.common.ResponseVO;
+import org.yangxin.im.common.config.AppConfig;
+import org.yangxin.im.common.constant.Constants;
 import org.yangxin.im.common.enums.DelFlagEnum;
 import org.yangxin.im.common.enums.UserErrorCode;
 import org.yangxin.im.common.exception.ApplicationException;
@@ -14,6 +18,7 @@ import org.yangxin.im.service.user.model.req.*;
 import org.yangxin.im.service.user.model.resp.GetUserInfoResp;
 import org.yangxin.im.service.user.model.resp.ImportUserResp;
 import org.yangxin.im.service.user.service.ImUserService;
+import org.yangxin.im.service.util.CallbackService;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,33 +26,36 @@ import java.util.List;
 
 @SuppressWarnings({"rawtypes", "CallToPrintStackTrace", "unchecked"})
 @Service
+@RequiredArgsConstructor
 public class ImUserviceImpl implements ImUserService {
-
     private final ImUserDataMapper imUserDataMapper;
-
-    public ImUserviceImpl(ImUserDataMapper imUserDataMapper) {
-        this.imUserDataMapper = imUserDataMapper;
-    }
+    private final AppConfig appConfig;
+    private final CallbackService callbackService;
 
     @Override
     public ResponseVO importUser(ImportUserReq req) {
 
-        if (req.getUserData().size() > 100) return ResponseVO.errorResponse(UserErrorCode.IMPORT_SIZE_BEYOND);
+        if (req.getUserData().size() > 100) {
+            return ResponseVO.errorResponse(UserErrorCode.IMPORT_SIZE_BEYOND);
+        }
 
         ImportUserResp resp = new ImportUserResp();
         List<String> successId = new ArrayList<>();
         List<String> errorId = new ArrayList<>();
 
         for (ImUserDataEntity data :
-                req.getUserData())
+                req.getUserData()) {
             try {
                 data.setAppId(req.getAppId());
                 int insert = imUserDataMapper.insert(data);
-                if (insert == 1) successId.add(data.getUserId());
+                if (insert == 1) {
+                    successId.add(data.getUserId());
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 errorId.add(data.getUserId());
             }
+        }
 
         resp.setErrorId(errorId);
         resp.setSuccessId(successId);
@@ -65,13 +73,17 @@ public class ImUserviceImpl implements ImUserService {
         HashMap<String, ImUserDataEntity> map = new HashMap<>();
 
         for (ImUserDataEntity data :
-                userDataEntities)
+                userDataEntities) {
             map.put(data.getUserId(), data);
+        }
 
         List<String> failUser = new ArrayList<>();
         for (String uid :
-                req.getUserIds())
-            if (!map.containsKey(uid)) failUser.add(uid);
+                req.getUserIds()) {
+            if (!map.containsKey(uid)) {
+                failUser.add(uid);
+            }
+        }
 
         GetUserInfoResp resp = new GetUserInfoResp();
         resp.setUserDataItem(userDataEntities);
@@ -87,7 +99,9 @@ public class ImUserviceImpl implements ImUserService {
         objectQueryWrapper.eq("del_flag", DelFlagEnum.NORMAL.getCode());
 
         ImUserDataEntity ImUserDataEntity = imUserDataMapper.selectOne(objectQueryWrapper);
-        if (ImUserDataEntity == null) return ResponseVO.errorResponse(UserErrorCode.USER_IS_NOT_EXIST);
+        if (ImUserDataEntity == null) {
+            return ResponseVO.errorResponse(UserErrorCode.USER_IS_NOT_EXIST);
+        }
 
         return ResponseVO.successResponse(ImUserDataEntity);
     }
@@ -110,8 +124,11 @@ public class ImUserviceImpl implements ImUserService {
 
             try {
                 update = imUserDataMapper.update(entity, wrapper);
-                if (update > 0) successId.add(userId);
-                else errorId.add(userId);
+                if (update > 0) {
+                    successId.add(userId);
+                } else {
+                    errorId.add(userId);
+                }
             } catch (Exception e) {
                 errorId.add(userId);
             }
@@ -131,7 +148,9 @@ public class ImUserviceImpl implements ImUserService {
         query.eq("user_id", req.getUserId());
         query.eq("del_flag", DelFlagEnum.NORMAL.getCode());
         ImUserDataEntity user = imUserDataMapper.selectOne(query);
-        if (user == null) throw new ApplicationException(UserErrorCode.USER_IS_NOT_EXIST);
+        if (user == null) {
+            throw new ApplicationException(UserErrorCode.USER_IS_NOT_EXIST);
+        }
 
         ImUserDataEntity update = new ImUserDataEntity();
         BeanUtils.copyProperties(req, update);
@@ -139,7 +158,13 @@ public class ImUserviceImpl implements ImUserService {
         update.setAppId(null);
         update.setUserId(null);
         int update1 = imUserDataMapper.update(update, query);
-        if (update1 == 1) return ResponseVO.successResponse();
+        if (update1 == 1) {
+            // 回调
+            if (appConfig.isModifyUserAfterCallback()) {
+                callbackService.callback(req.getAppId(), Constants.CallbackCommand.ModifyUserAfter, JSONObject.toJSONString(req));
+            }
+            return ResponseVO.successResponse();
+        }
         throw new ApplicationException(UserErrorCode.MODIFY_USER_ERROR);
     }
 
