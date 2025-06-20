@@ -1,14 +1,23 @@
 package org.yangxin.im.service.group.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.yangxin.im.common.ResponseVO;
+import org.yangxin.im.common.config.AppConfig;
+import org.yangxin.im.common.constant.Constants;
 import org.yangxin.im.common.enums.GroupErrorCode;
 import org.yangxin.im.common.enums.GroupMemberRoleEnum;
 import org.yangxin.im.common.enums.GroupStatusEnum;
 import org.yangxin.im.common.enums.GroupTypeEnum;
 import org.yangxin.im.common.exception.ApplicationException;
+import org.yangxin.im.service.friendship.model.callback.DestroyGroupCallbackDto;
 import org.yangxin.im.service.group.dao.ImGroupEntity;
 import org.yangxin.im.service.group.dao.mapper.ImGroupMapper;
 import org.yangxin.im.service.group.model.req.*;
@@ -17,22 +26,14 @@ import org.yangxin.im.service.group.model.resp.GetJoinedGroupResp;
 import org.yangxin.im.service.group.model.resp.GetRoleInGroupResp;
 import org.yangxin.im.service.group.service.ImGroupMemberService;
 import org.yangxin.im.service.group.service.ImGroupService;
-import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import org.yangxin.im.service.util.CallbackService;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-/**
- * @description:
- * @author: lld
- * @version: 1.0
- */
+@SuppressWarnings({"SpringJavaAutowiredFieldsWarningInspection", "rawtypes", "DuplicatedCode", "ConstantValue", "unchecked", "CallToPrintStackTrace", "unused"})
 @Service
 public class ImGroupServiceImpl implements ImGroupService {
 
@@ -42,6 +43,12 @@ public class ImGroupServiceImpl implements ImGroupService {
     @Autowired
     ImGroupMemberService groupMemberService;
 
+    @Autowired
+    AppConfig appConfig;
+
+    @Autowired
+    CallbackService callbackService;
+
 
     @Override
     public ResponseVO importGroup(ImportGroupReq req) {
@@ -49,25 +56,33 @@ public class ImGroupServiceImpl implements ImGroupService {
         //1.判断群id是否存在
         QueryWrapper<ImGroupEntity> query = new QueryWrapper<>();
 
-        if (StringUtils.isEmpty(req.getGroupId())) req.setGroupId(UUID.randomUUID().toString().replace("-", ""));
-        else {
+        if (StringUtils.isEmpty(req.getGroupId())) {
+            req.setGroupId(UUID.randomUUID().toString().replace("-", ""));
+        } else {
             query.eq("group_id", req.getGroupId());
             query.eq("app_id", req.getAppId());
             Integer integer = imGroupDataMapper.selectCount(query);
-            if (integer > 0) throw new ApplicationException(GroupErrorCode.GROUP_IS_EXIST);
+            if (integer > 0) {
+                throw new ApplicationException(GroupErrorCode.GROUP_IS_EXIST);
+            }
         }
 
         ImGroupEntity imGroupEntity = new ImGroupEntity();
 
-        if (req.getGroupType() == GroupTypeEnum.PUBLIC.getCode() && StringUtils.isBlank(req.getOwnerId()))
+        if (req.getGroupType() == GroupTypeEnum.PUBLIC.getCode() && StringUtils.isBlank(req.getOwnerId())) {
             throw new ApplicationException(GroupErrorCode.PUBLIC_GROUP_MUST_HAVE_OWNER);
+        }
 
-        if (req.getCreateTime() == null) imGroupEntity.setCreateTime(System.currentTimeMillis());
+        if (req.getCreateTime() == null) {
+            imGroupEntity.setCreateTime(System.currentTimeMillis());
+        }
         imGroupEntity.setStatus(GroupStatusEnum.NORMAL.getCode());
         BeanUtils.copyProperties(req, imGroupEntity);
         int insert = imGroupDataMapper.insert(imGroupEntity);
 
-        if (insert != 1) throw new ApplicationException(GroupErrorCode.IMPORT_GROUP_ERROR);
+        if (insert != 1) {
+            throw new ApplicationException(GroupErrorCode.IMPORT_GROUP_ERROR);
+        }
 
         return ResponseVO.successResponse();
     }
@@ -78,21 +93,27 @@ public class ImGroupServiceImpl implements ImGroupService {
 
         final boolean isAdmin = false;
 
-        if (!isAdmin) req.setOwnerId(req.getOperater());
+        if (!isAdmin) {
+            req.setOwnerId(req.getOperater());
+        }
 
         //1.判断群id是否存在
         QueryWrapper<ImGroupEntity> query = new QueryWrapper<>();
 
-        if (StringUtils.isEmpty(req.getGroupId())) req.setGroupId(UUID.randomUUID().toString().replace("-", ""));
-        else {
+        if (StringUtils.isEmpty(req.getGroupId())) {
+            req.setGroupId(UUID.randomUUID().toString().replace("-", ""));
+        } else {
             query.eq("group_id", req.getGroupId());
             query.eq("app_id", req.getAppId());
             Integer integer = imGroupDataMapper.selectCount(query);
-            if (integer > 0) throw new ApplicationException(GroupErrorCode.GROUP_IS_EXIST);
+            if (integer > 0) {
+                throw new ApplicationException(GroupErrorCode.GROUP_IS_EXIST);
+            }
         }
 
-        if (req.getGroupType() == GroupTypeEnum.PUBLIC.getCode() && StringUtils.isBlank(req.getOwnerId()))
+        if (req.getGroupType() == GroupTypeEnum.PUBLIC.getCode() && StringUtils.isBlank(req.getOwnerId())) {
             throw new ApplicationException(GroupErrorCode.PUBLIC_GROUP_MUST_HAVE_OWNER);
+        }
 
         ImGroupEntity imGroupEntity = new ImGroupEntity();
         imGroupEntity.setCreateTime(System.currentTimeMillis());
@@ -107,19 +128,17 @@ public class ImGroupServiceImpl implements ImGroupService {
         groupMemberService.addGroupMember(req.getGroupId(), req.getAppId(), groupMemberDto);
 
         //插入群成员
-        for (GroupMemberDto dto : req.getMember())
+        for (GroupMemberDto dto : req.getMember()) {
             groupMemberService.addGroupMember(req.getGroupId(), req.getAppId(), dto);
+        }
+
+        if (appConfig.isCreateGroupAfterCallback()) {
+            callbackService.callback(req.getAppId(), Constants.CallbackCommand.CreateGroupAfter, JSONObject.toJSONString(imGroupEntity));
+        }
 
         return ResponseVO.successResponse();
     }
 
-    /**
-     * @param [req]
-     * @return org.yangxin.im.common.ResponseVO
-     * @description 修改群基础信息，如果是后台管理员调用，则不检查权限，如果不是则检查权限，如果是私有群（微信群）任何人都可以修改资料，公开群只有管理员可以修改
-     * 如果是群主或者管理员可以修改其他信息。
-     * @author chackylee
-     */
     @Override
     @Transactional
     public ResponseVO updateBaseGroupInfo(UpdateGroupReq req) {
@@ -129,10 +148,13 @@ public class ImGroupServiceImpl implements ImGroupService {
         query.eq("group_id", req.getGroupId());
         query.eq("app_id", req.getAppId());
         ImGroupEntity imGroupEntity = imGroupDataMapper.selectOne(query);
-        if (imGroupEntity == null) throw new ApplicationException(GroupErrorCode.GROUP_IS_EXIST);
+        if (imGroupEntity == null) {
+            throw new ApplicationException(GroupErrorCode.GROUP_IS_EXIST);
+        }
 
-        if (imGroupEntity.getStatus() == GroupStatusEnum.DESTROY.getCode())
+        if (imGroupEntity.getStatus() == GroupStatusEnum.DESTROY.getCode()) {
             throw new ApplicationException(GroupErrorCode.GROUP_IS_DESTROY);
+        }
 
         final boolean isAdmin = false;
 
@@ -140,7 +162,9 @@ public class ImGroupServiceImpl implements ImGroupService {
             //不是后台调用需要检查权限
             ResponseVO<GetRoleInGroupResp> role = groupMemberService.getRoleInGroupOne(req.getGroupId(), req.getOperater(), req.getAppId());
 
-            if (!role.isOk()) return role;
+            if (!role.isOk()) {
+                return role;
+            }
 
             GetRoleInGroupResp data = role.getData();
             Integer roleInfo = data.getRole();
@@ -148,8 +172,9 @@ public class ImGroupServiceImpl implements ImGroupService {
             boolean isManager = roleInfo == GroupMemberRoleEnum.MAMAGER.getCode() || roleInfo == GroupMemberRoleEnum.OWNER.getCode();
 
             //公开群只能群主修改资料
-            if (!isManager && GroupTypeEnum.PUBLIC.getCode() == imGroupEntity.getGroupType())
+            if (!isManager && GroupTypeEnum.PUBLIC.getCode() == imGroupEntity.getGroupType()) {
                 throw new ApplicationException(GroupErrorCode.THIS_OPERATE_NEED_MANAGER_ROLE);
+            }
 
         }
 
@@ -157,17 +182,17 @@ public class ImGroupServiceImpl implements ImGroupService {
         BeanUtils.copyProperties(req, update);
         update.setUpdateTime(System.currentTimeMillis());
         int row = imGroupDataMapper.update(update, query);
-        if (row != 1) throw new ApplicationException(GroupErrorCode.THIS_OPERATE_NEED_MANAGER_ROLE);
+        if (row != 1) {
+            throw new ApplicationException(GroupErrorCode.THIS_OPERATE_NEED_MANAGER_ROLE);
+        }
+
+        if (appConfig.isModifyGroupAfterCallback()) {
+            callbackService.callback(req.getAppId(), Constants.CallbackCommand.ModifyUserAfter, JSONObject.toJSONString(imGroupDataMapper.selectOne(query)));
+        }
 
         return ResponseVO.successResponse();
     }
 
-    /**
-     * @param [req]
-     * @return org.yangxin.im.common.ResponseVO
-     * @description 获取用户加入的群组
-     * @author chackylee
-     */
     @Override
     public ResponseVO getJoinedGroup(GetJoinedGroupReq req) {
 
@@ -186,23 +211,23 @@ public class ImGroupServiceImpl implements ImGroupService {
             query.eq("app_id", req.getAppId());
             query.in("group_id", memberJoinedGroup.getData());
 
-            if (CollectionUtils.isNotEmpty(req.getGroupType())) query.in("group_type", req.getGroupType());
+            if (CollectionUtils.isNotEmpty(req.getGroupType())) {
+                query.in("group_type", req.getGroupType());
+            }
 
             List<ImGroupEntity> groupList = imGroupDataMapper.selectList(query);
             resp.setGroupList(groupList);
-            if (req.getLimit() == null) resp.setTotalCount(groupList.size());
-            else resp.setTotalCount(imGroupDataMapper.selectCount(query));
+            if (req.getLimit() == null) {
+                resp.setTotalCount(groupList.size());
+            } else {
+                resp.setTotalCount(imGroupDataMapper.selectCount(query));
+            }
             return ResponseVO.successResponse(resp);
-        } else return memberJoinedGroup;
+        } else {
+            return memberJoinedGroup;
+        }
     }
 
-
-    /**
-     * @param [req]
-     * @return org.yangxin.im.common.ResponseVO
-     * @description 解散群组，只支持后台管理员和群主解散
-     * @author chackylee
-     */
     @Override
     @Transactional
     public ResponseVO destroyGroup(DestroyGroupReq req) {
@@ -213,25 +238,38 @@ public class ImGroupServiceImpl implements ImGroupService {
         objectQueryWrapper.eq("group_id", req.getGroupId());
         objectQueryWrapper.eq("app_id", req.getAppId());
         ImGroupEntity imGroupEntity = imGroupDataMapper.selectOne(objectQueryWrapper);
-        if (imGroupEntity == null) throw new ApplicationException(GroupErrorCode.PRIVATE_GROUP_CAN_NOT_DESTORY);
+        if (imGroupEntity == null) {
+            throw new ApplicationException(GroupErrorCode.PRIVATE_GROUP_CAN_NOT_DESTORY);
+        }
 
-        if (imGroupEntity.getStatus() == GroupStatusEnum.DESTROY.getCode())
+        if (imGroupEntity.getStatus() == GroupStatusEnum.DESTROY.getCode()) {
             throw new ApplicationException(GroupErrorCode.GROUP_IS_DESTROY);
+        }
 
         if (!isAdmin) {
-            if (imGroupEntity.getGroupType() == GroupTypeEnum.PUBLIC.getCode())
+            if (imGroupEntity.getGroupType() == GroupTypeEnum.PUBLIC.getCode()) {
                 throw new ApplicationException(GroupErrorCode.THIS_OPERATE_NEED_OWNER_ROLE);
+            }
 
             if (imGroupEntity.getGroupType() == GroupTypeEnum.PUBLIC.getCode() &&
-                    !imGroupEntity.getOwnerId().equals(req.getOperater()))
+                    !imGroupEntity.getOwnerId().equals(req.getOperater())) {
                 throw new ApplicationException(GroupErrorCode.THIS_OPERATE_NEED_OWNER_ROLE);
+            }
         }
 
         ImGroupEntity update = new ImGroupEntity();
 
         update.setStatus(GroupStatusEnum.DESTROY.getCode());
         int update1 = imGroupDataMapper.update(update, objectQueryWrapper);
-        if (update1 != 1) throw new ApplicationException(GroupErrorCode.UPDATE_GROUP_BASE_INFO_ERROR);
+        if (update1 != 1) {
+            throw new ApplicationException(GroupErrorCode.UPDATE_GROUP_BASE_INFO_ERROR);
+        }
+
+        if (appConfig.isDestroyGroupAfterCallback()) {
+            DestroyGroupCallbackDto dto = new DestroyGroupCallbackDto();
+            dto.setGroupId(req.getGroupId());
+            callbackService.callback(req.getAppId(), Constants.CallbackCommand.DestoryGroupAfter, JSONObject.toJSONString(dto));
+        }
         return ResponseVO.successResponse();
     }
 
@@ -240,20 +278,26 @@ public class ImGroupServiceImpl implements ImGroupService {
     public ResponseVO transferGroup(TransferGroupReq req) {
 
         ResponseVO<GetRoleInGroupResp> roleInGroupOne = groupMemberService.getRoleInGroupOne(req.getGroupId(), req.getOperater(), req.getAppId());
-        if (!roleInGroupOne.isOk()) return roleInGroupOne;
+        if (!roleInGroupOne.isOk()) {
+            return roleInGroupOne;
+        }
 
-        if (roleInGroupOne.getData().getRole() != GroupMemberRoleEnum.OWNER.getCode())
+        if (roleInGroupOne.getData().getRole() != GroupMemberRoleEnum.OWNER.getCode()) {
             return ResponseVO.errorResponse(GroupErrorCode.THIS_OPERATE_NEED_OWNER_ROLE);
+        }
 
         ResponseVO<GetRoleInGroupResp> newOwnerRole = groupMemberService.getRoleInGroupOne(req.getGroupId(), req.getOwnerId(), req.getAppId());
-        if (!newOwnerRole.isOk()) return newOwnerRole;
+        if (!newOwnerRole.isOk()) {
+            return newOwnerRole;
+        }
 
         QueryWrapper<ImGroupEntity> objectQueryWrapper = new QueryWrapper<>();
         objectQueryWrapper.eq("group_id", req.getGroupId());
         objectQueryWrapper.eq("app_id", req.getAppId());
         ImGroupEntity imGroupEntity = imGroupDataMapper.selectOne(objectQueryWrapper);
-        if (imGroupEntity.getStatus() == GroupStatusEnum.DESTROY.getCode())
+        if (imGroupEntity.getStatus() == GroupStatusEnum.DESTROY.getCode()) {
             throw new ApplicationException(GroupErrorCode.GROUP_IS_DESTROY);
+        }
 
         ImGroupEntity updateGroup = new ImGroupEntity();
         updateGroup.setOwnerId(req.getOwnerId());
@@ -274,7 +318,9 @@ public class ImGroupServiceImpl implements ImGroupService {
         query.eq("group_id", groupId);
         ImGroupEntity imGroupEntity = imGroupDataMapper.selectOne(query);
 
-        if (imGroupEntity == null) return ResponseVO.errorResponse(GroupErrorCode.GROUP_IS_NOT_EXIST);
+        if (imGroupEntity == null) {
+            return ResponseVO.errorResponse(GroupErrorCode.GROUP_IS_NOT_EXIST);
+        }
         return ResponseVO.successResponse(imGroupEntity);
     }
 
@@ -283,13 +329,17 @@ public class ImGroupServiceImpl implements ImGroupService {
 
         ResponseVO group = getGroup(req.getGroupId(), req.getAppId());
 
-        if (!group.isOk()) return group;
+        if (!group.isOk()) {
+            return group;
+        }
 
         GetGroupResp getGroupResp = new GetGroupResp();
         BeanUtils.copyProperties(group.getData(), getGroupResp);
         try {
             ResponseVO<List<GroupMemberDto>> groupMember = groupMemberService.getGroupMember(req.getGroupId(), req.getAppId());
-            if (groupMember.isOk()) getGroupResp.setMemberList(groupMember.getData());
+            if (groupMember.isOk()) {
+                getGroupResp.setMemberList(groupMember.getData());
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -300,10 +350,13 @@ public class ImGroupServiceImpl implements ImGroupService {
     public ResponseVO muteGroup(MuteGroupReq req) {
 
         ResponseVO<ImGroupEntity> groupResp = getGroup(req.getGroupId(), req.getAppId());
-        if (!groupResp.isOk()) return groupResp;
+        if (!groupResp.isOk()) {
+            return groupResp;
+        }
 
-        if (groupResp.getData().getStatus() == GroupStatusEnum.DESTROY.getCode())
+        if (groupResp.getData().getStatus() == GroupStatusEnum.DESTROY.getCode()) {
             throw new ApplicationException(GroupErrorCode.GROUP_IS_DESTROY);
+        }
 
         final boolean isadmin = false;
 
@@ -311,7 +364,9 @@ public class ImGroupServiceImpl implements ImGroupService {
             //不是后台调用需要检查权限
             ResponseVO<GetRoleInGroupResp> role = groupMemberService.getRoleInGroupOne(req.getGroupId(), req.getOperater(), req.getAppId());
 
-            if (!role.isOk()) return role;
+            if (!role.isOk()) {
+                return role;
+            }
 
             GetRoleInGroupResp data = role.getData();
             Integer roleInfo = data.getRole();
@@ -319,7 +374,9 @@ public class ImGroupServiceImpl implements ImGroupService {
             boolean isManager = roleInfo == GroupMemberRoleEnum.MAMAGER.getCode() || roleInfo == GroupMemberRoleEnum.OWNER.getCode();
 
             //公开群只能群主修改资料
-            if (!isManager) throw new ApplicationException(GroupErrorCode.THIS_OPERATE_NEED_MANAGER_ROLE);
+            if (!isManager) {
+                throw new ApplicationException(GroupErrorCode.THIS_OPERATE_NEED_MANAGER_ROLE);
+            }
         }
 
         ImGroupEntity update = new ImGroupEntity();
