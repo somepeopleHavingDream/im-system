@@ -3,10 +3,6 @@ package org.yangxin.im.common.model;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-/**
- * @author: Chackylee
- * @description:
- **/
 @Data
 @NoArgsConstructor
 public class ClientInfo {
