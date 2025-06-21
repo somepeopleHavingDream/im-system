@@ -20,7 +20,7 @@ public class CallbackService {
 
     public void callback(Integer appId, String callbackCommand, String jsonBody) {
         try {
-            httpRequestUtils.doPost("", Object.class, builderUrlParams(appId, callbackCommand), jsonBody, null);
+            httpRequestUtils.doPost(appConfig.getCallbackUrl(), Object.class, builderUrlParams(appId, callbackCommand), jsonBody, null);
         } catch (Exception e) {
             log.error("callback error {} {} {}", appId, callbackCommand, jsonBody, e);
         }

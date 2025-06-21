@@ -1,10 +1,5 @@
 package org.yangxin.im.service.user.controller;
 
-import org.yangxin.im.common.ResponseVO;
-import org.yangxin.im.service.user.model.req.GetUserInfoReq;
-import org.yangxin.im.service.user.model.req.ModifyUserInfoReq;
-import org.yangxin.im.service.user.model.req.UserId;
-import org.yangxin.im.service.user.service.ImUserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,12 +7,13 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.yangxin.im.common.ResponseVO;
+import org.yangxin.im.service.user.model.req.GetUserInfoReq;
+import org.yangxin.im.service.user.model.req.ModifyUserInfoReq;
+import org.yangxin.im.service.user.model.req.UserId;
+import org.yangxin.im.service.user.service.ImUserService;
 
-/**
- * @description:
- * @author: lld
- * @version: 1.0
- */
+@SuppressWarnings({"rawtypes", "SpringJavaAutowiredFieldsWarningInspection"})
 @RestController
 @RequestMapping("v1/user/data")
 public class ImUserDataController {

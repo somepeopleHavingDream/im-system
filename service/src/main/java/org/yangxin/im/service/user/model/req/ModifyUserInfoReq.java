@@ -1,15 +1,11 @@
 package org.yangxin.im.service.user.model.req;
 
-import org.yangxin.im.common.model.RequestBase;
 import lombok.Data;
+import org.yangxin.im.common.model.RequestBase;
 
 import javax.validation.constraints.NotEmpty;
 
-/**
- * @description:
- * @author: lld
- * @version: 1.0
- */
+@SuppressWarnings("Lombok")
 @Data
 public class ModifyUserInfoReq extends RequestBase {
 
