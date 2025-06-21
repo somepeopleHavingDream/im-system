@@ -58,9 +58,13 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
                 log.error(e.getMessage(), e);
             }
             RedissonClient redissonClient = RedisManager.getRedissonClient();
-            RMap<String, String> map = redissonClient.getMap(msg.getMessageHeader().getAppId() + Constants.RedisConstants.UserSessionConstants + loginPack.getUserId());
-            map.put(msg.getMessageHeader().getClientType() + ":" + msg.getMessageHeader().getImei(), JSONObject.toJSONString(userSession));
-            SessionSocketHolder.put(msg.getMessageHeader().getAppId(), loginPack.getUserId(), msg.getMessageHeader().getClientType(), msg.getMessageHeader().getImei(), (NioSocketChannel) ctx.channel());
+            RMap<String, String> map =
+                    redissonClient.getMap(msg.getMessageHeader().getAppId() + Constants.RedisConstants.UserSessionConstants + loginPack.getUserId());
+            map.put(msg.getMessageHeader().getClientType() + ":" + msg.getMessageHeader().getImei(),
+                    JSONObject.toJSONString(userSession));
+            SessionSocketHolder.put(msg.getMessageHeader().getAppId(), loginPack.getUserId(),
+                    msg.getMessageHeader().getClientType(), msg.getMessageHeader().getImei(),
+                    (NioSocketChannel) ctx.channel());
 
             UserClientDto dto = new UserClientDto();
             dto.setImei(msg.getMessageHeader().getImei());

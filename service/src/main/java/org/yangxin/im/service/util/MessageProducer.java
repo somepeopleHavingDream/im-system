@@ -7,6 +7,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.yangxin.im.codec.proto.MessagePack;
+import org.yangxin.im.common.constant.Constants;
 import org.yangxin.im.common.enums.command.Command;
 import org.yangxin.im.common.model.ClientInfo;
 import org.yangxin.im.common.model.UserSession;
@@ -14,7 +15,7 @@ import org.yangxin.im.common.model.UserSession;
 import java.util.List;
 import java.util.Objects;
 
-@SuppressWarnings({"rawtypes", "unchecked"})
+@SuppressWarnings({"rawtypes", "unchecked", "UnusedReturnValue"})
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -25,7 +26,8 @@ public class MessageProducer {
     public boolean sendMessage(UserSession session, Object msg) {
         try {
             log.info("sendMessage {}", msg);
-            rabbitTemplate.convertAndSend("", session.getBrokerId() + "", msg);
+            String queueName = Constants.RabbitConstants.MessageService2Im;
+            rabbitTemplate.convertAndSend(queueName, session.getBrokerId() + "", msg);
             return true;
         } catch (Exception e) {
             log.error("sendMessage error", e);
@@ -68,7 +70,8 @@ public class MessageProducer {
 
     // 发送给某个用户的指定客户端
     public void sendToUser(String toId, Command command, Object data, ClientInfo clientInfo) {
-        UserSession userSessions = userSessionUtil.getUserSessions(clientInfo.getAppId(), toId, clientInfo.getClientType(), clientInfo.getImei());
+        UserSession userSessions = userSessionUtil.getUserSessions(clientInfo.getAppId(), toId,
+                clientInfo.getClientType(), clientInfo.getImei());
         sendPack(toId, command, data, userSessions);
     }
 

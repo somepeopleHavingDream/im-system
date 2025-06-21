@@ -13,7 +13,10 @@ import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.websocketx.WebSocketServerProtocolHandler;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import lombok.extern.slf4j.Slf4j;
+import org.yangxin.im.codec.WebSocketMessageDecoder;
+import org.yangxin.im.codec.WebSocketMessageEncoder;
 import org.yangxin.im.codec.config.BootstrapConfig;
+import org.yangxin.im.tcp.handler.NettyServerHandler;
 
 @Slf4j
 public class ImWebSocketServer {
@@ -50,6 +53,9 @@ public class ImWebSocketServer {
                           对于websocket来讲，都是以frames进行传输的，不同的数据类型对应的frames也不同
                          */
                         pipeline.addLast(new WebSocketServerProtocolHandler("/ws"));
+                        pipeline.addLast(new WebSocketMessageDecoder());
+                        pipeline.addLast(new WebSocketMessageEncoder());
+                        pipeline.addLast(new NettyServerHandler(config.getBrokerId()));
                     }
                 });
     }

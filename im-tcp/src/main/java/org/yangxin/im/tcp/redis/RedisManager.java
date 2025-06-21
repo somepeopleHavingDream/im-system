@@ -2,7 +2,7 @@ package org.yangxin.im.tcp.redis;
 
 import org.redisson.api.RedissonClient;
 import org.yangxin.im.codec.config.BootstrapConfig;
-import org.yangxin.im.tcp.receive.UserLoginMessageListener;
+import org.yangxin.im.tcp.receiver.UserLoginMessageListener;
 
 public class RedisManager {
     private static RedissonClient redissonClient;

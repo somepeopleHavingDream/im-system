@@ -1,4 +1,4 @@
-package org.yangxin.im.tcp.receive;
+package org.yangxin.im.tcp.receiver;
 
 import com.alibaba.fastjson.JSONObject;
 import io.netty.channel.socket.nio.NioSocketChannel;

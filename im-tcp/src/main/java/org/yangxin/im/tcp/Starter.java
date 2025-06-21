@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.I0Itec.zkclient.ZkClient;
 import org.yaml.snakeyaml.Yaml;
 import org.yangxin.im.codec.config.BootstrapConfig;
-import org.yangxin.im.tcp.receive.MessageReceiver;
+import org.yangxin.im.tcp.receiver.MessageReceiver;
 import org.yangxin.im.tcp.redis.RedisManager;
 import org.yangxin.im.tcp.register.RegistryZk;
 import org.yangxin.im.tcp.register.ZKit;
