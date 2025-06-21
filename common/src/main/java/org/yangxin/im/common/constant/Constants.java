@@ -11,9 +11,7 @@ public class Constants {
     public static final String ImCoreZkRootWeb = "/web";
 
     public static class RedisConstants {
-        /**
-         * 获取上线通知 channel
-         */
+        public static final String userSign = "userSign";
         public static final String UserLoginChannel = "signal/channel/LOGIN_USER_INNER_QUEUE";
         public static final String UserSessionConstants = ":userSession:";
     }
