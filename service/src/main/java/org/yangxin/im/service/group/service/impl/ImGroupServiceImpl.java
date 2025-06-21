@@ -9,6 +9,9 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.yangxin.im.codec.pack.group.CreateGroupPack;
+import org.yangxin.im.codec.pack.group.DestroyGroupPack;
+import org.yangxin.im.codec.pack.group.UpdateGroupInfoPack;
 import org.yangxin.im.common.ResponseVO;
 import org.yangxin.im.common.config.AppConfig;
 import org.yangxin.im.common.constant.Constants;
@@ -16,7 +19,9 @@ import org.yangxin.im.common.enums.GroupErrorCode;
 import org.yangxin.im.common.enums.GroupMemberRoleEnum;
 import org.yangxin.im.common.enums.GroupStatusEnum;
 import org.yangxin.im.common.enums.GroupTypeEnum;
+import org.yangxin.im.common.enums.command.GroupEventCommand;
 import org.yangxin.im.common.exception.ApplicationException;
+import org.yangxin.im.common.model.ClientInfo;
 import org.yangxin.im.service.friendship.model.callback.DestroyGroupCallbackDto;
 import org.yangxin.im.service.group.dao.ImGroupEntity;
 import org.yangxin.im.service.group.dao.mapper.ImGroupMapper;
@@ -27,6 +32,7 @@ import org.yangxin.im.service.group.model.resp.GetRoleInGroupResp;
 import org.yangxin.im.service.group.service.ImGroupMemberService;
 import org.yangxin.im.service.group.service.ImGroupService;
 import org.yangxin.im.service.util.CallbackService;
+import org.yangxin.im.service.util.GroupMessageProducer;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -49,6 +55,8 @@ public class ImGroupServiceImpl implements ImGroupService {
     @Autowired
     CallbackService callbackService;
 
+    @Autowired
+    GroupMessageProducer groupMessageProducer;
 
     @Override
     public ResponseVO importGroup(ImportGroupReq req) {
@@ -136,6 +144,11 @@ public class ImGroupServiceImpl implements ImGroupService {
             callbackService.callback(req.getAppId(), Constants.CallbackCommand.CreateGroupAfter, JSONObject.toJSONString(imGroupEntity));
         }
 
+        CreateGroupPack createGroupPack = new CreateGroupPack();
+        BeanUtils.copyProperties(imGroupEntity, createGroupPack);
+        groupMessageProducer.producer(req.getOperater(), GroupEventCommand.CREATED_GROUP, createGroupPack
+                , new ClientInfo(req.getAppId(), req.getClientType(), req.getImei()));
+
         return ResponseVO.successResponse();
     }
 
@@ -189,6 +202,11 @@ public class ImGroupServiceImpl implements ImGroupService {
         if (appConfig.isModifyGroupAfterCallback()) {
             callbackService.callback(req.getAppId(), Constants.CallbackCommand.ModifyUserAfter, JSONObject.toJSONString(imGroupDataMapper.selectOne(query)));
         }
+
+        UpdateGroupInfoPack pack = new UpdateGroupInfoPack();
+        BeanUtils.copyProperties(req, pack);
+        groupMessageProducer.producer(req.getOperater(), GroupEventCommand.UPDATED_GROUP,
+                pack, new ClientInfo(req.getAppId(), req.getClientType(), req.getImei()));
 
         return ResponseVO.successResponse();
     }
@@ -270,6 +288,13 @@ public class ImGroupServiceImpl implements ImGroupService {
             dto.setGroupId(req.getGroupId());
             callbackService.callback(req.getAppId(), Constants.CallbackCommand.DestoryGroupAfter, JSONObject.toJSONString(dto));
         }
+
+        DestroyGroupPack pack = new DestroyGroupPack();
+//        pack.setSequence(seq);
+        pack.setGroupId(req.getGroupId());
+        groupMessageProducer.producer(req.getOperater(),
+                GroupEventCommand.DESTROY_GROUP, pack, new ClientInfo(req.getAppId(), req.getClientType(), req.getImei()));
+
         return ResponseVO.successResponse();
     }
 
