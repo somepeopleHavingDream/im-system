@@ -6,11 +6,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.yangxin.im.codec.pack.user.UserModifyPack;
 import org.yangxin.im.common.ResponseVO;
 import org.yangxin.im.common.config.AppConfig;
 import org.yangxin.im.common.constant.Constants;
 import org.yangxin.im.common.enums.DelFlagEnum;
 import org.yangxin.im.common.enums.UserErrorCode;
+import org.yangxin.im.common.enums.command.UserEventCommand;
 import org.yangxin.im.common.exception.ApplicationException;
 import org.yangxin.im.service.user.dao.ImUserDataEntity;
 import org.yangxin.im.service.user.dao.mapper.ImUserDataMapper;
@@ -19,6 +21,7 @@ import org.yangxin.im.service.user.model.resp.GetUserInfoResp;
 import org.yangxin.im.service.user.model.resp.ImportUserResp;
 import org.yangxin.im.service.user.service.ImUserService;
 import org.yangxin.im.service.util.CallbackService;
+import org.yangxin.im.service.util.MessageProducer;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,6 +34,7 @@ public class ImUserviceImpl implements ImUserService {
     private final ImUserDataMapper imUserDataMapper;
     private final AppConfig appConfig;
     private final CallbackService callbackService;
+    private final MessageProducer messageProducer;
 
     @Override
     public ResponseVO importUser(ImportUserReq req) {
@@ -159,6 +163,10 @@ public class ImUserviceImpl implements ImUserService {
         update.setUserId(null);
         int update1 = imUserDataMapper.update(update, query);
         if (update1 == 1) {
+            // 通知
+            UserModifyPack pack = new UserModifyPack();
+            BeanUtils.copyProperties(req, pack);
+            messageProducer.sendToUser(req.getUserId(), req.getClientType(), req.getImei(), UserEventCommand.USER_MODIFY, pack, req.getAppId());
             // 回调
             if (appConfig.isModifyUserAfterCallback()) {
                 callbackService.callback(req.getAppId(), Constants.CallbackCommand.ModifyUserAfter, JSONObject.toJSONString(req));

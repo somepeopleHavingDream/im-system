@@ -3,6 +3,7 @@ package org.yangxin.im.service.util;
 import com.alibaba.fastjson.JSONObject;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 import org.yangxin.im.codec.proto.MessagePack;
@@ -53,6 +54,15 @@ public class MessageProducer {
         List<UserSession> sessionList = userSessionUtil.getUserSessions(appId, toId);
         for (UserSession session : sessionList) {
             sendPack(toId, command, data, session);
+        }
+    }
+
+    public void sendToUser(String toId, Integer clientType, String imei, Command command, Object data, Integer appId) {
+        if (clientType != null && StringUtils.isNotEmpty(imei)) {
+            ClientInfo clientInfo = new ClientInfo(appId, clientType, imei);
+            sendToUserExceptClient(toId, command, data, clientInfo);
+        } else {
+            sendToUser(toId, command, data, appId);
         }
     }
 
