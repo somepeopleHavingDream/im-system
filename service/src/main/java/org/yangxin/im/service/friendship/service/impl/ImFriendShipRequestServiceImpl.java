@@ -5,9 +5,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.yangxin.im.codec.pack.friendship.ApproverFriendRequestPack;
+import org.yangxin.im.codec.pack.friendship.ReadAllFriendRequestPack;
 import org.yangxin.im.common.ResponseVO;
 import org.yangxin.im.common.enums.ApproverFriendRequestStatusEnum;
 import org.yangxin.im.common.enums.FriendShipErrorCode;
+import org.yangxin.im.common.enums.command.FriendshipEventCommand;
 import org.yangxin.im.common.exception.ApplicationException;
 import org.yangxin.im.service.friendship.dao.ImFriendShipRequestEntity;
 import org.yangxin.im.service.friendship.dao.mapper.ImFriendShipRequestMapper;
@@ -16,10 +19,12 @@ import org.yangxin.im.service.friendship.model.req.FriendDto;
 import org.yangxin.im.service.friendship.model.req.ReadFriendShipRequestReq;
 import org.yangxin.im.service.friendship.service.ImFriendService;
 import org.yangxin.im.service.friendship.service.ImFriendShipRequestService;
+import org.yangxin.im.service.util.MessageProducer;
 
 import java.util.List;
 
 
+@SuppressWarnings({"SpringJavaAutowiredFieldsWarningInspection", "rawtypes", "unchecked"})
 @Service
 public class ImFriendShipRequestServiceImpl implements ImFriendShipRequestService {
 
@@ -28,6 +33,9 @@ public class ImFriendShipRequestServiceImpl implements ImFriendShipRequestServic
 
     @Autowired
     ImFriendService imFriendShipService;
+
+    @Autowired
+    MessageProducer messageProducer;
 
     @Override
     public ResponseVO getFriendRequest(String fromId, Integer appId) {
@@ -75,6 +83,9 @@ public class ImFriendShipRequestServiceImpl implements ImFriendShipRequestServic
             imFriendShipRequestMapper.updateById(request);
         }
 
+        // 发送好友申请的 tcp 给接收端
+        messageProducer.sendToUser(dto.getToId(), null, "", FriendshipEventCommand.FRIEND_REQUEST, request, appId);
+
         return ResponseVO.successResponse();
     }
 
@@ -112,6 +123,11 @@ public class ImFriendShipRequestServiceImpl implements ImFriendShipRequestServic
                 return responseVO;
         }
 
+        ApproverFriendRequestPack approverFriendRequestPack = new ApproverFriendRequestPack();
+        approverFriendRequestPack.setId(req.getId());
+        approverFriendRequestPack.setStatus(req.getStatus());
+        messageProducer.sendToUser(imFriendShipRequestEntity.getToId(), req.getClientType(), req.getImei(), FriendshipEventCommand.FRIEND_REQUEST_APPROVER, approverFriendRequestPack, req.getAppId());
+
         return ResponseVO.successResponse();
     }
 
@@ -124,6 +140,11 @@ public class ImFriendShipRequestServiceImpl implements ImFriendShipRequestServic
         ImFriendShipRequestEntity update = new ImFriendShipRequestEntity();
         update.setReadStatus(1);
         imFriendShipRequestMapper.update(update, query);
+
+        // tcp 通知
+        ReadAllFriendRequestPack readAllFriendRequestPack = new ReadAllFriendRequestPack();
+        readAllFriendRequestPack.setFromId(req.getFromId());
+        messageProducer.sendToUser(req.getFromId(), req.getClientType(), req.getImei(), FriendshipEventCommand.FRIEND_REQUEST_READ, readAllFriendRequestPack, req.getAppId());
 
         return ResponseVO.successResponse();
     }
