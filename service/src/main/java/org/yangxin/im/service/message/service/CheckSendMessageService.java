@@ -8,6 +8,10 @@ import org.yangxin.im.common.enums.*;
 import org.yangxin.im.service.friendship.dao.ImFriendShipEntity;
 import org.yangxin.im.service.friendship.model.req.GetRelationReq;
 import org.yangxin.im.service.friendship.service.ImFriendService;
+import org.yangxin.im.service.group.dao.ImGroupEntity;
+import org.yangxin.im.service.group.model.resp.GetRoleInGroupResp;
+import org.yangxin.im.service.group.service.ImGroupMemberService;
+import org.yangxin.im.service.group.service.ImGroupService;
 import org.yangxin.im.service.user.dao.ImUserDataEntity;
 import org.yangxin.im.service.user.service.ImUserService;
 
@@ -17,6 +21,8 @@ import org.yangxin.im.service.user.service.ImUserService;
 public class CheckSendMessageService {
     private final ImUserService imUserService;
     private final ImFriendService imFriendService;
+    private final ImGroupService imGroupService;
+    private final ImGroupMemberService imGroupMemberService;
 
     private final AppConfig appConfig;
 
@@ -72,6 +78,39 @@ public class CheckSendMessageService {
                     return ResponseVO.errorResponse(FriendShipErrorCode.TARGET_IS_BLACK_YOU);
                 }
             }
+        }
+
+        return ResponseVO.successResponse();
+    }
+
+    public ResponseVO<?> checkGroupMessage(String fromId, String groupId, Integer appId) {
+        ResponseVO<?> responseVO = checkSenderForbiddenAndMute(fromId, appId);
+        if (!responseVO.isOk()) {
+            return responseVO;
+        }
+
+        // 判断群逻辑
+        ResponseVO<ImGroupEntity> group = imGroupService.getGroup(groupId, appId);
+        if (!group.isOk()) {
+            return group;
+        }
+
+        // 判断群成员是否在群内
+        ResponseVO<GetRoleInGroupResp> roleInGroupOne = imGroupMemberService.getRoleInGroupOne(groupId, fromId, appId);
+        if (!roleInGroupOne.isOk()) {
+            return roleInGroupOne;
+        }
+        GetRoleInGroupResp data = roleInGroupOne.getData();
+
+        // 判断群是否被禁言
+        // 如果禁言，只有群管理和群主可以发言
+        ImGroupEntity groupData = group.getData();
+        if (groupData.getMute() == GroupMuteTypeEnum.MUTE.getCode() && (data.getRole() == GroupMemberRoleEnum.MAMAGER.getCode() || data.getRole() == GroupMemberRoleEnum.OWNER.getCode())) {
+            return ResponseVO.errorResponse(GroupErrorCode.THIS_GROUP_IS_MUTE);
+        }
+
+        if (data.getSpeakDate() != null && data.getSpeakDate() > System.currentTimeMillis()) {
+            return ResponseVO.errorResponse(GroupErrorCode.GROUP_MEMBER_IS_SPEAK);
         }
 
         return ResponseVO.successResponse();
