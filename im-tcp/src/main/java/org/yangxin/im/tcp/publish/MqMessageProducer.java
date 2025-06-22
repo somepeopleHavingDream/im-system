@@ -22,7 +22,7 @@ public class MqMessageProducer {
             o.put("imei", message.getMessageHeader().getImei());
             o.put("appId", message.getMessageHeader().getAppId());
 
-            channel.basicPublish(channelName, "", null, JSONObject.toJSONString(message).getBytes());
+            channel.basicPublish(channelName, "", null, JSON.toJSONString(o).getBytes());
         } catch (Exception e) {
             log.error("发送消息出现异常", e);
         }

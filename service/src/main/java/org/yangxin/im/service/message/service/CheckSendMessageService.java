@@ -74,6 +74,6 @@ public class CheckSendMessageService {
             }
         }
 
-        return ResponseVO.errorResponse();
+        return ResponseVO.successResponse();
     }
 }
