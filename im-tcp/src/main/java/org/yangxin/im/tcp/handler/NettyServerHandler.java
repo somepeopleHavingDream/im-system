@@ -17,6 +17,7 @@ import org.yangxin.im.common.enums.ImConnectStatusEnum;
 import org.yangxin.im.common.enums.command.SystemCommand;
 import org.yangxin.im.common.model.UserClientDto;
 import org.yangxin.im.common.model.UserSession;
+import org.yangxin.im.tcp.publish.MqMessageProducer;
 import org.yangxin.im.tcp.redis.RedisManager;
 import org.yangxin.im.tcp.util.SessionSocketHolder;
 
@@ -77,6 +78,8 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
             SessionSocketHolder.removeUserSession((NioSocketChannel) ctx.channel());
         } else if (command == SystemCommand.PING.getCommand()) {
             ctx.channel().attr(AttributeKey.valueOf(Constants.ReadTime)).set(System.currentTimeMillis());
+        } else {
+            MqMessageProducer.sendMessage(msg, command);
         }
     }
 }
