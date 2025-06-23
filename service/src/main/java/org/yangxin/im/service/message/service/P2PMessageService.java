@@ -7,7 +7,7 @@ import org.yangxin.im.codec.pack.message.ChatMessageAck;
 import org.yangxin.im.common.ResponseVO;
 import org.yangxin.im.common.enums.command.MessageCommand;
 import org.yangxin.im.common.model.ClientInfo;
-import org.yangxin.im.service.message.model.MessageContent;
+import org.yangxin.im.common.model.message.MessageContent;
 import org.yangxin.im.service.util.MessageProducer;
 
 @SuppressWarnings({"rawtypes", "unchecked"})

@@ -1,4 +1,4 @@
-package org.yangxin.im.service.message.model;
+package org.yangxin.im.common.model.message;
 
 import lombok.Getter;
 import lombok.Setter;
