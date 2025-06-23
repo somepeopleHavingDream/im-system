@@ -9,6 +9,7 @@ import org.yangxin.im.common.enums.ImUrlRouteWayEnum;
 import org.yangxin.im.common.enums.RouteHashMethodEnum;
 import org.yangxin.im.common.route.RouteHandle;
 import org.yangxin.im.common.route.algorithm.consistenthash.AbstractConsistentHash;
+import org.yangxin.im.service.util.SnowflakeIdWorker;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -26,7 +27,8 @@ public class BeanConfig {
     }
 
     @Bean
-    public RouteHandle routeHandle() throws ClassNotFoundException, InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
+    public RouteHandle routeHandle() throws ClassNotFoundException, InstantiationException, IllegalAccessException,
+            NoSuchMethodException, InvocationTargetException {
         Integer imRouteWay = appConfig.getImRouteWay();
         String routWay;
         ImUrlRouteWayEnum handler = ImUrlRouteWayEnum.getHandler(imRouteWay);
@@ -44,5 +46,15 @@ public class BeanConfig {
         }
 
         return routeHandle;
+    }
+
+    @Bean
+    public EasySqlInjector easySqlInjector() {
+        return new EasySqlInjector();
+    }
+
+    @Bean
+    public SnowflakeIdWorker buildSnowflakeSeq() {
+        return new SnowflakeIdWorker(0);
     }
 }

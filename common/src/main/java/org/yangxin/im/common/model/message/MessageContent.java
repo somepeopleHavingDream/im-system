@@ -11,4 +11,8 @@ public class MessageContent extends ClientInfo {
     private String fromId;
     private String toId;
     private String messageBody;
+    private Long messageTime;
+    private Long createTime;
+    private String extra;
+    private Long messageKey;
 }
