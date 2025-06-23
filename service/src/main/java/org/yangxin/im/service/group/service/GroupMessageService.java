@@ -11,6 +11,7 @@ import org.yangxin.im.common.model.ClientInfo;
 import org.yangxin.im.common.model.message.GroupChatMessageContent;
 import org.yangxin.im.common.model.message.MessageContent;
 import org.yangxin.im.service.message.service.CheckSendMessageService;
+import org.yangxin.im.service.message.service.MessageStoreService;
 import org.yangxin.im.service.util.MessageProducer;
 
 import java.util.List;
@@ -23,6 +24,7 @@ public class GroupMessageService {
     private final CheckSendMessageService checkSendMessageService;
     private final MessageProducer messageProducer;
     private final ImGroupMemberService imGroupMemberService;
+    private final MessageStoreService messageStoreService;
 
     public void process(GroupChatMessageContent messageContent) {
         String fromId = messageContent.getFromId();
@@ -34,6 +36,7 @@ public class GroupMessageService {
         // 发送方和接收方是否是好友
         ResponseVO<?> responseVO = imServerPermissionCheck(fromId, groupId, appId);
         if (responseVO.isOk()) {
+            messageStoreService.storeGroupMessage(messageContent);
             // 回 ack 给自己
             groupAck(messageContent, responseVO);
             // 发消息给同步在线端

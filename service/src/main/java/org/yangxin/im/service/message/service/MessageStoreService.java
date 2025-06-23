@@ -5,7 +5,10 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.yangxin.im.common.enums.DelFlagEnum;
+import org.yangxin.im.common.model.message.GroupChatMessageContent;
 import org.yangxin.im.common.model.message.MessageContent;
+import org.yangxin.im.service.group.dao.ImGroupMessageHistoryEntity;
+import org.yangxin.im.service.group.dao.mapper.ImGroupMessageHistoryMapper;
 import org.yangxin.im.service.message.dao.ImMessageBodyEntity;
 import org.yangxin.im.service.message.dao.ImMessageHistoryEntity;
 import org.yangxin.im.service.message.dao.mapper.ImMessageBodyMapper;
@@ -20,7 +23,7 @@ import java.util.List;
 public class MessageStoreService {
     private final ImMessageHistoryMapper imMessageHistoryMapper;
     private final ImMessageBodyMapper imMessageBodyMapper;
-    private final SnowflakeIdWorker snowflakeIdWorker;
+    private final ImGroupMessageHistoryMapper imGroupMessageHistoryMapper;
 
     @Transactional
     public void storeP2PMessage(MessageContent messageContent) {
@@ -73,4 +76,28 @@ public class MessageStoreService {
         return list;
     }
 
+    @Transactional
+    public void storeGroupMessage(GroupChatMessageContent messageContent) {
+        // messageContent 转化为 messageBody
+        ImMessageBodyEntity imMessageBodyEntity = extractMessageBody(messageContent);
+        // 插入 messageBody
+        imMessageBodyMapper.insert(imMessageBodyEntity);
+
+        // 转换成 MessageHistory
+        ImGroupMessageHistoryEntity imGroupMessageHistoryEntity = extractToGroupMessageHistory(messageContent,
+                imMessageBodyEntity);
+        imGroupMessageHistoryMapper.insert(imGroupMessageHistoryEntity);
+        messageContent.setMessageKey(imMessageBodyEntity.getMessageKey());
+    }
+
+    private ImGroupMessageHistoryEntity extractToGroupMessageHistory(GroupChatMessageContent messageContent,
+                                                                     ImMessageBodyEntity imMessageBodyEntity) {
+        ImGroupMessageHistoryEntity result = new ImGroupMessageHistoryEntity();
+        BeanUtils.copyProperties(messageContent, result);
+        result.setGroupId(messageContent.getGroupId());
+        result.setMessageKey(imMessageBodyEntity.getMessageKey());
+        result.setCreateTime(System.currentTimeMillis());
+
+        return result;
+    }
 }

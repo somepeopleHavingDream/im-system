@@ -7,5 +7,6 @@ im_group_member group_member_id
 
 im_message_body message_key
 im_message_history (app_id, owner_id, message_key)
+im_group_message_history (app_id, group_id, message_key)
 
 im_user_data (app_id, user_id)
