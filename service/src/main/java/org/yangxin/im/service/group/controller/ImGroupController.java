@@ -7,19 +7,18 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.yangxin.im.common.ResponseVO;
 import org.yangxin.im.service.group.model.req.*;
+import org.yangxin.im.service.group.service.GroupMessageService;
 import org.yangxin.im.service.group.service.ImGroupService;
 
-/**
- * @description:
- * @author: lld
- * @version: 1.0
- */
+@SuppressWarnings("rawtypes")
 @RestController
 @RequestMapping("v1/group")
 public class ImGroupController {
 
     @Autowired
     ImGroupService groupService;
+    @Autowired
+    GroupMessageService groupMessageService;
 
     @RequestMapping("/importGroup")
     public ResponseVO importGroup(@RequestBody @Validated ImportGroupReq req, Integer appId, String identifier) {
@@ -77,4 +76,10 @@ public class ImGroupController {
         return groupService.muteGroup(req);
     }
 
+    @RequestMapping("/sendMessage")
+    public ResponseVO sendMessage(@RequestBody @Validated SendGroupMessageReq req, Integer appId, String identifier) {
+        req.setAppId(appId);
+        req.setOperater(identifier);
+        return ResponseVO.successResponse(groupMessageService.send(req));
+    }
 }

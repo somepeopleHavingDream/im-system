@@ -2,6 +2,7 @@ package org.yangxin.im.service.group.service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.yangxin.im.codec.pack.message.ChatMessageAck;
 import org.yangxin.im.common.ResponseVO;
@@ -10,6 +11,8 @@ import org.yangxin.im.common.enums.command.MessageCommand;
 import org.yangxin.im.common.model.ClientInfo;
 import org.yangxin.im.common.model.message.GroupChatMessageContent;
 import org.yangxin.im.common.model.message.MessageContent;
+import org.yangxin.im.service.group.model.req.SendGroupMessageReq;
+import org.yangxin.im.service.message.model.resp.SendMessageResp;
 import org.yangxin.im.service.message.service.CheckSendMessageService;
 import org.yangxin.im.service.message.service.MessageStoreService;
 import org.yangxin.im.service.util.MessageProducer;
@@ -77,5 +80,22 @@ public class GroupMessageService {
 
     private ResponseVO<?> imServerPermissionCheck(String fromId, String toId, Integer appId) {
         return checkSendMessageService.checkGroupMessage(fromId, toId, appId);
+    }
+
+    public Object send(SendGroupMessageReq req) {
+        SendMessageResp sendMessageResp = new SendMessageResp();
+        GroupChatMessageContent message = new GroupChatMessageContent();
+        BeanUtils.copyProperties(req, message);
+
+        messageStoreService.storeGroupMessage(message);
+
+        sendMessageResp.setMessageKey(message.getMessageKey());
+        sendMessageResp.setMessageTime(System.currentTimeMillis());
+        // 发消息给同步在线端
+        syncToSender(message, message);
+        // 发消息给对方在线端
+        dispatchMessage(message);
+
+        return sendMessageResp;
     }
 }
