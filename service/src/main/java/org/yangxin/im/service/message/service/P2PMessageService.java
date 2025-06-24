@@ -50,7 +50,7 @@ public class P2PMessageService {
         // 前置校验
         // 这个用户是否被禁言、是否被禁用
         // 发送方和接收方是否是好友
-        ResponseVO<?> responseVO = imServerPermissionCheck(fromId, toId, messageContent);
+        ResponseVO<?> responseVO = imServerPermissionCheck(fromId, toId, appId);
         if (responseVO.isOk()) {
             threadPoolExecutor.execute(() -> {
                 // 插入数据
@@ -89,13 +89,12 @@ public class P2PMessageService {
                 messageContent);
     }
 
-    private ResponseVO<?> imServerPermissionCheck(String fromId, String toId, MessageContent messageContent) {
-        ResponseVO<?> responseVO = checkSendMessageService.checkSenderForbiddenAndMute(fromId,
-                messageContent.getAppId());
+    public ResponseVO<?> imServerPermissionCheck(String fromId, String toId, Integer appId) {
+        ResponseVO<?> responseVO = checkSendMessageService.checkSenderForbiddenAndMute(fromId, appId);
         if (!responseVO.isOk()) {
             return responseVO;
         }
-        return checkSendMessageService.checkFriendShip(fromId, toId, messageContent.getAppId());
+        return checkSendMessageService.checkFriendShip(fromId, toId, appId);
     }
 
     public SendMessageResp send(SendMessageReq req) {
