@@ -18,7 +18,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-@SuppressWarnings({"rawtypes", "unchecked", "InstantiatingAThreadWithDefaultRunMethod"})
+@SuppressWarnings({"rawtypes", "unchecked"})
 @Service
 @Slf4j
 public class P2PMessageService {
@@ -35,7 +35,7 @@ public class P2PMessageService {
         AtomicInteger num = new AtomicInteger(0);
         threadPoolExecutor = new ThreadPoolExecutor(8, 8, 60, TimeUnit.SECONDS, new LinkedBlockingDeque<>(1000),
                 r -> {
-                    Thread thread = new Thread();
+                    Thread thread = new Thread(r);
                     thread.setDaemon(true);
                     thread.setName("message-process-thread-" + num.getAndIncrement());
                     return thread;
@@ -51,23 +51,16 @@ public class P2PMessageService {
         // 这个用户是否被禁言、是否被禁用
         // 发送方和接收方是否是好友
         ResponseVO<?> responseVO = imServerPermissionCheck(fromId, toId, appId);
-        if (responseVO.isOk()) {
-            threadPoolExecutor.execute(() -> {
-                // 插入数据
-                messageStoreService.storeP2PMessage(messageContent);
-                // 回 ack 给自己
-                ack(messageContent, responseVO);
-                // 发消息给同步在线端
-                syncToSender(messageContent, messageContent);
-                // 发消息给对方在线端
-                dispatchMessage(messageContent);
-            });
-        } else {
-            // 告诉客户端失败了
-            // ack
-            ack(messageContent, responseVO);
-        }
-
+        threadPoolExecutor.execute(() -> {
+            // 插入数据
+            messageStoreService.storeP2PMessage(messageContent);
+            // 回 ack 给自己
+            ack(messageContent, ResponseVO.successResponse());
+            // 发消息给同步在线端
+            syncToSender(messageContent, messageContent);
+            // 发消息给对方在线端
+            dispatchMessage(messageContent);
+        });
     }
 
     private void dispatchMessage(MessageContent messageContent) {
