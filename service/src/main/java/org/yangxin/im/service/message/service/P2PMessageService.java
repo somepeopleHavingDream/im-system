@@ -43,14 +43,9 @@ public class P2PMessageService {
     }
 
     public void process(MessageContent messageContent) {
-        String fromId = messageContent.getFromId();
-        String toId = messageContent.getToId();
-        Integer appId = messageContent.getAppId();
-
         // 前置校验
         // 这个用户是否被禁言、是否被禁用
         // 发送方和接收方是否是好友
-        ResponseVO<?> responseVO = imServerPermissionCheck(fromId, toId, appId);
         threadPoolExecutor.execute(() -> {
             // 插入数据
             messageStoreService.storeP2PMessage(messageContent);
