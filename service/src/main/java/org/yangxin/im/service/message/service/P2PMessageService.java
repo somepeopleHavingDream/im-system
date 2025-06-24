@@ -1,6 +1,5 @@
 package org.yangxin.im.service.message.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -13,14 +12,35 @@ import org.yangxin.im.service.message.model.req.SendMessageReq;
 import org.yangxin.im.service.message.model.resp.SendMessageResp;
 import org.yangxin.im.service.util.MessageProducer;
 
-@SuppressWarnings({"rawtypes", "unchecked"})
+import javax.annotation.Resource;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+
+@SuppressWarnings({"rawtypes", "unchecked", "InstantiatingAThreadWithDefaultRunMethod"})
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class P2PMessageService {
-    private final CheckSendMessageService checkSendMessageService;
-    private final MessageProducer messageProducer;
-    private final MessageStoreService messageStoreService;
+    @Resource
+    private CheckSendMessageService checkSendMessageService;
+    @Resource
+    private MessageProducer messageProducer;
+    @Resource
+    private MessageStoreService messageStoreService;
+
+    private final ThreadPoolExecutor threadPoolExecutor;
+
+    {
+        AtomicInteger num = new AtomicInteger(0);
+        threadPoolExecutor = new ThreadPoolExecutor(8, 8, 60, TimeUnit.SECONDS, new LinkedBlockingDeque<>(1000),
+                r -> {
+                    Thread thread = new Thread();
+                    thread.setDaemon(true);
+                    thread.setName("message-process-thread-" + num.getAndIncrement());
+                    return thread;
+                });
+    }
 
     public void process(MessageContent messageContent) {
         String fromId = messageContent.getFromId();
@@ -32,14 +52,16 @@ public class P2PMessageService {
         // 发送方和接收方是否是好友
         ResponseVO<?> responseVO = imServerPermissionCheck(fromId, toId, messageContent);
         if (responseVO.isOk()) {
-            // 插入数据
-            messageStoreService.storeP2PMessage(messageContent);
-            // 回 ack 给自己
-            ack(messageContent, responseVO);
-            // 发消息给同步在线端
-            syncToSender(messageContent, messageContent);
-            // 发消息给对方在线端
-            dispatchMessage(messageContent);
+            threadPoolExecutor.execute(() -> {
+                // 插入数据
+                messageStoreService.storeP2PMessage(messageContent);
+                // 回 ack 给自己
+                ack(messageContent, responseVO);
+                // 发消息给同步在线端
+                syncToSender(messageContent, messageContent);
+                // 发消息给对方在线端
+                dispatchMessage(messageContent);
+            });
         } else {
             // 告诉客户端失败了
             // ack
