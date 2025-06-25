@@ -19,10 +19,10 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 @Slf4j
-public class Starter {
+public class ImTcpApplication {
     public static void main(String[] args) {
         if (args.length > 0) {
-            Starter.start(args[0]);
+            ImTcpApplication.start(args[0]);
         }
     }
 
@@ -40,14 +40,15 @@ public class Starter {
             MessageReceiver.init(bootstrapConfig.getIm().getBrokerId() + "");
             registerZk(bootstrapConfig);
         } catch (Exception e) {
-            Starter.log.error(e.getMessage(), e);
+            ImTcpApplication.log.error(e.getMessage(), e);
             System.exit(500);
         }
     }
 
     public static void registerZk(BootstrapConfig config) throws UnknownHostException {
         String hostAddress = InetAddress.getLocalHost().getHostAddress();
-        ZkClient zkClient = new ZkClient(config.getIm().getZkConfig().getZkAddr(), config.getIm().getZkConfig().getZkConnectTimeOut());
+        ZkClient zkClient = new ZkClient(config.getIm().getZkConfig().getZkAddr(),
+                config.getIm().getZkConfig().getZkConnectTimeOut());
         ZKit zKit = new ZKit(zkClient);
         RegistryZk registryZk = new RegistryZk(zKit, hostAddress, config.getIm());
 

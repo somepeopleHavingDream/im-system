@@ -13,35 +13,16 @@ import org.yangxin.im.common.model.message.GroupChatMessageContent;
 import org.yangxin.im.common.model.message.ImMessageBody;
 import org.yangxin.im.common.model.message.MessageContent;
 import org.yangxin.im.service.group.dao.ImGroupMessageHistoryEntity;
-import org.yangxin.im.service.group.dao.mapper.ImGroupMessageHistoryMapper;
 import org.yangxin.im.service.message.dao.ImMessageBodyEntity;
-import org.yangxin.im.service.message.dao.ImMessageHistoryEntity;
-import org.yangxin.im.service.message.dao.mapper.ImMessageBodyMapper;
-import org.yangxin.im.service.message.dao.mapper.ImMessageHistoryMapper;
 import org.yangxin.im.service.util.SnowflakeIdWorker;
-
-import java.util.ArrayList;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class MessageStoreService {
-    private final ImMessageHistoryMapper imMessageHistoryMapper;
-    private final ImMessageBodyMapper imMessageBodyMapper;
-    private final ImGroupMessageHistoryMapper imGroupMessageHistoryMapper;
     private final RabbitTemplate rabbitTemplate;
 
     @Transactional
     public void storeP2PMessage(MessageContent messageContent) {
-        // messageContent 转化为 messageBody
-//        // 插入 messageBody
-//        imMessageBodyMapper.insert(imMessageBodyEntity);
-//        // 转化为 MessageHistory
-//        List<ImMessageHistoryEntity> imMessageHistoryEntities = extractTopP2PMessageHistory(messageContent,
-//                imMessageBodyEntity);
-//        // 批量插入
-//        imMessageHistoryMapper.insertBatchSomeColumn(imMessageHistoryEntities);
-//        messageContent.setMessageKey(imMessageBodyEntity.getMessageKey());
         ImMessageBody imMessageBodyEntity = extractMessageBody(messageContent);
         DoStoreP2PMessageDto dto = new DoStoreP2PMessageDto();
         dto.setMessageContent(messageContent);
@@ -63,28 +44,6 @@ public class MessageStoreService {
         messageBody.setMessageBody(messageContent.getMessageBody());
 
         return messageBody;
-    }
-
-    public List<ImMessageHistoryEntity> extractTopP2PMessageHistory(MessageContent messageContent,
-                                                                    ImMessageBodyEntity imMessageBodyEntity) {
-        List<ImMessageHistoryEntity> list = new ArrayList<>();
-
-        ImMessageHistoryEntity fromHistory = new ImMessageHistoryEntity();
-        BeanUtils.copyProperties(messageContent, fromHistory);
-        fromHistory.setOwnerId(messageContent.getFromId());
-        fromHistory.setMessageKey(imMessageBodyEntity.getMessageKey());
-        fromHistory.setCreateTime(System.currentTimeMillis());
-
-        ImMessageHistoryEntity toHistory = new ImMessageHistoryEntity();
-        BeanUtils.copyProperties(messageContent, toHistory);
-        toHistory.setOwnerId(messageContent.getToId());
-        toHistory.setMessageKey(imMessageBodyEntity.getMessageKey());
-        toHistory.setCreateTime(System.currentTimeMillis());
-
-        list.add(fromHistory);
-        list.add(toHistory);
-
-        return list;
     }
 
     @Transactional

@@ -6,9 +6,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication(scanBasePackages = {"org.yangxin.im.service", "org.yangxin.im.common"})
 @MapperScan("org.yangxin.im.service.*.dao.mapper")
-public class Application {
+public class ImServiceApplication {
     public static void main(String[] args) {
-        SpringApplication.run(Application.class, args);
+        SpringApplication.run(ImServiceApplication.class, args);
     }
 }
 
