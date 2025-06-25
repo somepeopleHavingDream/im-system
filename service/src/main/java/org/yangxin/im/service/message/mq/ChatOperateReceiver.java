@@ -17,6 +17,8 @@ import org.springframework.stereotype.Component;
 import org.yangxin.im.common.constant.Constants;
 import org.yangxin.im.common.enums.command.MessageCommand;
 import org.yangxin.im.common.model.message.MessageContent;
+import org.yangxin.im.common.model.message.MessageReceiveAckContent;
+import org.yangxin.im.service.message.service.MessageSyncService;
 import org.yangxin.im.service.message.service.P2PMessageService;
 
 import java.io.IOException;
@@ -28,6 +30,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatOperateReceiver {
     private final P2PMessageService p2pMessageService;
+    private final MessageSyncService messageSyncService;
 
     @RabbitListener(
             bindings = @QueueBinding(
@@ -46,6 +49,10 @@ public class ChatOperateReceiver {
                 // 处理消息
                 MessageContent messageContent = jsonObject.toJavaObject(MessageContent.class);
                 p2pMessageService.process(messageContent);
+            } else if (command.equals(MessageCommand.MSG_RECEIVE_ACK.getCommand())) {
+                // 消息接收确认
+                MessageReceiveAckContent messageContent = jsonObject.toJavaObject(MessageReceiveAckContent.class);
+                messageSyncService.receiveMark(messageContent);
             }
             channel.basicAck(deliveryTag, false);
         } catch (Exception e) {

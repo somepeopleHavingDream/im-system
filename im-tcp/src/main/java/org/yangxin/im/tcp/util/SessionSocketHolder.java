@@ -77,7 +77,8 @@ public class SessionSocketHolder {
 
         // redis 删除
         RedissonClient redissonClient = RedisManager.getRedissonClient();
-        RMap<Object, Object> map = redissonClient.getMap(appId + Constants.RedisConstants.UserSessionConstants + userId);
+        RMap<Object, Object> map =
+                redissonClient.getMap(appId + Constants.RedisConstants.UserSessionConstants + userId);
         map.remove(clientType + ":" + imei);
 
         nioSocketChannel.close();
@@ -92,8 +93,9 @@ public class SessionSocketHolder {
 
         // redis 删除
         RedissonClient redissonClient = RedisManager.getRedissonClient();
-        RMap<String, String> map = redissonClient.getMap(appId + Constants.RedisConstants.UserSessionConstants + userId);
-        String sessionStr = map.get(clientType.toString());
+        RMap<String, String> map =
+                redissonClient.getMap(appId + Constants.RedisConstants.UserSessionConstants + userId);
+        String sessionStr = map.get(clientType.toString() + ":" + imei);
 
         if (!StringUtils.isBlank(sessionStr)) {
             UserSession userSession = JSONObject.parseObject(sessionStr, UserSession.class);

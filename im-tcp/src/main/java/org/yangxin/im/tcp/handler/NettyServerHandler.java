@@ -38,7 +38,6 @@ import java.net.UnknownHostException;
 @Slf4j
 public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
     private final Integer brokerId;
-    private String logicUrl;
     private final FeignMessageService feignMessageService;
 
     public NettyServerHandler(Integer brokerId, String logicUrl) {
@@ -122,5 +121,13 @@ public class NettyServerHandler extends SimpleChannelInboundHandler<Message> {
         } else {
             MqMessageProducer.sendMessage(msg, command);
         }
+    }
+
+    //表示 channel 处于不活动状态
+    @Override
+    public void channelInactive(ChannelHandlerContext ctx) {
+        //设置离线
+        SessionSocketHolder.offlineUserSession((NioSocketChannel) ctx.channel());
+        ctx.close();
     }
 }

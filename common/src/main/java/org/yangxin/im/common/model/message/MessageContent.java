@@ -15,4 +15,5 @@ public class MessageContent extends ClientInfo {
     private Long createTime;
     private String extra;
     private Long messageKey;
+    private long messageSequence;
 }

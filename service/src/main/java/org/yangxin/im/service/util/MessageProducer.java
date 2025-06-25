@@ -12,6 +12,7 @@ import org.yangxin.im.common.enums.command.Command;
 import org.yangxin.im.common.model.ClientInfo;
 import org.yangxin.im.common.model.UserSession;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -52,11 +53,16 @@ public class MessageProducer {
     }
 
     // 发送给所有端的方法
-    public void sendToUser(String toId, Command command, Object data, Integer appId) {
+    public List<ClientInfo> sendToUser(String toId, Command command, Object data, Integer appId) {
         List<UserSession> sessionList = userSessionUtil.getUserSessions(appId, toId);
+        List<ClientInfo> list = new ArrayList<>();
         for (UserSession session : sessionList) {
-            sendPack(toId, command, data, session);
+            boolean b = sendPack(toId, command, data, session);
+            if (b) {
+                list.add(new ClientInfo(session.getAppId(), session.getClientType(), session.getImei()));
+            }
         }
+        return list;
     }
 
     public void sendToUser(String toId, Integer clientType, String imei, Command command, Object data, Integer appId) {

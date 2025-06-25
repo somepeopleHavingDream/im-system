@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.yangxin.im.codec.pack.message.ChatMessageAck;
+import org.yangxin.im.codec.pack.message.MessageReceiveServerAckPack;
 import org.yangxin.im.common.ResponseVO;
 import org.yangxin.im.common.enums.command.MessageCommand;
 import org.yangxin.im.common.model.ClientInfo;
@@ -13,6 +14,7 @@ import org.yangxin.im.service.message.model.resp.SendMessageResp;
 import org.yangxin.im.service.util.MessageProducer;
 
 import javax.annotation.Resource;
+import java.util.List;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -44,8 +46,6 @@ public class P2PMessageService {
 
     public void process(MessageContent messageContent) {
         // 前置校验
-        // 这个用户是否被禁言、是否被禁用
-        // 发送方和接收方是否是好友
         threadPoolExecutor.execute(() -> {
             // 插入数据
             messageStoreService.storeP2PMessage(messageContent);
@@ -54,12 +54,16 @@ public class P2PMessageService {
             // 发消息给同步在线端
             syncToSender(messageContent, messageContent);
             // 发消息给对方在线端
-            dispatchMessage(messageContent);
+            List<ClientInfo> clientInfos = dispatchMessage(messageContent);
+            if (clientInfos.isEmpty()) {
+                // 发送接受确认给发送方，要带上是服务端发送的标识
+                receiveAck(messageContent);
+            }
         });
     }
 
-    private void dispatchMessage(MessageContent messageContent) {
-        messageProducer.sendToUser(messageContent.getToId(), MessageCommand.MSG_P2P, messageContent,
+    private List<ClientInfo> dispatchMessage(MessageContent messageContent) {
+        return messageProducer.sendToUser(messageContent.getToId(), MessageCommand.MSG_P2P, messageContent,
                 messageContent.getAppId());
     }
 
@@ -70,6 +74,18 @@ public class P2PMessageService {
         responseVO.setData(chatMessageAck);
         // 发消息
         messageProducer.sendToUser(messageContent.getFromId(), MessageCommand.MSG_ACK, responseVO, messageContent);
+    }
+
+    public void receiveAck(MessageContent messageContent) {
+        MessageReceiveServerAckPack pack = new MessageReceiveServerAckPack();
+        pack.setFromId(messageContent.getToId());
+        pack.setToId(messageContent.getFromId());
+        pack.setMessageKey(messageContent.getMessageKey());
+        pack.setMessageSequence(messageContent.getMessageSequence());
+        pack.setServerSend(true);
+
+        messageProducer.sendToUser(messageContent.getFromId(), MessageCommand.MSG_RECEIVE_ACK, pack,
+                new ClientInfo(messageContent.getAppId(), messageContent.getClientType(), messageContent.getImei()));
     }
 
     private void syncToSender(MessageContent messageContent, ClientInfo clientInfo) {
