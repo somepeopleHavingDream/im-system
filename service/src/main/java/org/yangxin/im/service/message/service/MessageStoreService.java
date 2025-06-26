@@ -1,9 +1,12 @@
 package org.yangxin.im.service.message.service;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.yangxin.im.common.constant.Constants;
@@ -16,10 +19,13 @@ import org.yangxin.im.service.group.dao.ImGroupMessageHistoryEntity;
 import org.yangxin.im.service.message.dao.ImMessageBodyEntity;
 import org.yangxin.im.service.util.SnowflakeIdWorker;
 
+import java.util.concurrent.TimeUnit;
+
 @Service
 @RequiredArgsConstructor
 public class MessageStoreService {
     private final RabbitTemplate rabbitTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Transactional
     public void storeP2PMessage(MessageContent messageContent) {
@@ -67,7 +73,21 @@ public class MessageStoreService {
         result.setGroupId(messageContent.getGroupId());
         result.setMessageKey(imMessageBodyEntity.getMessageKey());
         result.setCreateTime(System.currentTimeMillis());
-
         return result;
+    }
+
+    public void setMessageFromMessageIdCache(MessageContent messageContent) {
+        String key =
+                messageContent.getAppId() + ":" + Constants.RedisConstants.cacheMessage + ":" + messageContent.getMessageId();
+        stringRedisTemplate.opsForValue().set(key, JSON.toJSONString(messageContent), 300, TimeUnit.SECONDS);
+    }
+
+    public MessageContent getMessageFromMessageIdCache(Integer appId, String messageId) {
+        String key = appId + ":" + Constants.RedisConstants.cacheMessage + ":" + messageId;
+        String msg = stringRedisTemplate.opsForValue().get(key);
+        if (StringUtils.isBlank(msg)) {
+            return null;
+        }
+        return JSONObject.parseObject(msg, MessageContent.class);
     }
 }

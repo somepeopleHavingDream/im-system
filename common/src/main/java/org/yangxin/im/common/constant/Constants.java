@@ -14,6 +14,7 @@ public class Constants {
         public static final String userSign = "userSign";
         public static final String UserLoginChannel = "signal/channel/LOGIN_USER_INNER_QUEUE";
         public static final String UserSessionConstants = ":userSession:";
+        public static final String cacheMessage = "cacheMessage";
     }
 
     public static class RabbitConstants {

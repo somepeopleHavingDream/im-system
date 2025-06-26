@@ -50,12 +50,31 @@ public class P2PMessageService {
     }
 
     public void process(MessageContent messageContent) {
+        MessageContent messageFromMessageIdCache =
+                messageStoreService.getMessageFromMessageIdCache(messageContent.getAppId(),
+                        messageContent.getMessageId());
+        if (messageFromMessageIdCache != null) {
+            threadPoolExecutor.execute(() -> {
+                // 回 ack 给自己
+                ack(messageContent, ResponseVO.successResponse());
+                // 发消息给同步在线端
+                syncToSender(messageFromMessageIdCache, messageFromMessageIdCache);
+                // 发消息给对方在线端
+                List<ClientInfo> clientInfos = dispatchMessage(messageFromMessageIdCache);
+                if (clientInfos.isEmpty()) {
+                    // 发送接受确认给发送方，要带上是服务端发送的标识
+                    receiveAck(messageContent);
+                }
+            });
+            return;
+        }
+
+        long seq =
+                redisSeq.doGetSeq(messageContent.getAppId() + ":" + Constants.SeqConstants.Message + ":" + ConversationIdGenerate.generateP2PId(messageContent.getFromId(), messageContent.getToId()));
+        messageContent.setMessageSequence(seq);
+
         // 校验前置
         threadPoolExecutor.execute(() -> {
-            long seq =
-                    redisSeq.doGetSeq(messageContent.getAppId() + ":" + Constants.SeqConstants.Message + ":" + ConversationIdGenerate.generateP2PId(messageContent.getFromId(), messageContent.getToId()));
-            messageContent.setMessageSequence(seq);
-
             // 插入数据
             messageStoreService.storeP2PMessage(messageContent);
             // 回 ack 给自己
@@ -64,6 +83,8 @@ public class P2PMessageService {
             syncToSender(messageContent, messageContent);
             // 发消息给对方在线端
             List<ClientInfo> clientInfos = dispatchMessage(messageContent);
+            // 将 messageId 存到缓存中
+            messageStoreService.setMessageFromMessageIdCache(messageContent);
             if (clientInfos.isEmpty()) {
                 // 发送接受确认给发送方，要带上是服务端发送的标识
                 receiveAck(messageContent);
@@ -78,7 +99,6 @@ public class P2PMessageService {
 
     private void ack(MessageContent messageContent, ResponseVO responseVO) {
         log.info("ack {} {}", messageContent.getMessageId(), responseVO.getCode());
-
         ChatMessageAck chatMessageAck = new ChatMessageAck(messageContent.getMessageId(),
                 messageContent.getMessageSequence());
         responseVO.setData(chatMessageAck);
