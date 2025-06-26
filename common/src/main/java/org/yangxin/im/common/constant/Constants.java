@@ -71,6 +71,9 @@ public class Constants {
         public static final String SendMessageAfter = "message.send.after";
 
         public static final String SendMessageBefore = "message.send.before";
+    }
 
+    public static class SeqConstants {
+        public static final String Message = "messageSeq";
     }
 }

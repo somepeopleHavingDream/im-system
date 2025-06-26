@@ -36,12 +36,14 @@ public class StoreMessageService {
         fromHistory.setOwnerId(messageContent.getFromId());
         fromHistory.setMessageKey(imMessageBodyEntity.getMessageKey());
         fromHistory.setCreateTime(System.currentTimeMillis());
+        fromHistory.setSequence(messageContent.getMessageSequence());
 
         ImMessageHistoryEntity toHistory = new ImMessageHistoryEntity();
         BeanUtils.copyProperties(messageContent, toHistory);
         toHistory.setOwnerId(messageContent.getToId());
         toHistory.setMessageKey(imMessageBodyEntity.getMessageKey());
         toHistory.setCreateTime(System.currentTimeMillis());
+        toHistory.setSequence(messageContent.getMessageSequence());
 
         list.add(fromHistory);
         list.add(toHistory);

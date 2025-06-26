@@ -1,12 +1,18 @@
 package org.yangxin.im.codec.pack.message;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 public class ChatMessageAck {
     private String messageId;
+    private Long messageSequence;
+
+    public ChatMessageAck(String messageId) {
+        this.messageId = messageId;
+    }
+
+    public ChatMessageAck(String messageId, Long messageSequence) {
+        this.messageId = messageId;
+        this.messageSequence = messageSequence;
+    }
 }
