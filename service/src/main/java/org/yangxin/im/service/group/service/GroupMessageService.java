@@ -1,6 +1,5 @@
 package org.yangxin.im.service.group.service;
 
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -17,40 +16,52 @@ import org.yangxin.im.service.message.service.CheckSendMessageService;
 import org.yangxin.im.service.message.service.MessageStoreService;
 import org.yangxin.im.service.util.MessageProducer;
 
+import javax.annotation.Resource;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingDeque;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @SuppressWarnings({"rawtypes", "unchecked"})
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class GroupMessageService {
-    private final CheckSendMessageService checkSendMessageService;
-    private final MessageProducer messageProducer;
-    private final ImGroupMemberService imGroupMemberService;
-    private final MessageStoreService messageStoreService;
+    @Resource
+    private CheckSendMessageService checkSendMessageService;
+    @Resource
+    private MessageProducer messageProducer;
+    @Resource
+    private ImGroupMemberService imGroupMemberService;
+    @Resource
+    private MessageStoreService messageStoreService;
+
+    private final ThreadPoolExecutor threadPoolExecutor;
+
+    {
+        AtomicInteger num = new AtomicInteger(0);
+        threadPoolExecutor = new ThreadPoolExecutor(8, 8, 60, TimeUnit.SECONDS, new LinkedBlockingDeque<>(1000),
+                r -> {
+                    Thread thread = new Thread(r);
+                    thread.setDaemon(true);
+                    thread.setName("message-group-thread-" + num.getAndIncrement());
+                    return thread;
+                });
+    }
 
     public void process(GroupChatMessageContent messageContent) {
-        String fromId = messageContent.getFromId();
-        String groupId = messageContent.getGroupId();
-        Integer appId = messageContent.getAppId();
-
         // 前置校验
         // 这个用户是否被禁言、是否被禁用
         // 发送方和接收方是否是好友
-        ResponseVO<?> responseVO = imServerPermissionCheck(fromId, groupId, appId);
-        if (responseVO.isOk()) {
+        threadPoolExecutor.execute(() -> {
             messageStoreService.storeGroupMessage(messageContent);
             // 回 ack 给自己
-            groupAck(messageContent, responseVO);
+            groupAck(messageContent, ResponseVO.successResponse());
             // 发消息给同步在线端
             syncToSender(messageContent, messageContent);
             // 发消息给对方在线端
             dispatchMessage(messageContent);
-        } else {
-            // 告诉客户端失败了
-            // ack
-            groupAck(messageContent, responseVO);
-        }
+        });
     }
 
     private void dispatchMessage(GroupChatMessageContent messageContent) {
