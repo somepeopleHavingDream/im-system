@@ -5,6 +5,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.yangxin.im.codec.pack.message.ChatMessageAck;
 import org.yangxin.im.common.ResponseVO;
+import org.yangxin.im.common.constant.Constants;
 import org.yangxin.im.common.enums.command.GroupEventCommand;
 import org.yangxin.im.common.enums.command.MessageCommand;
 import org.yangxin.im.common.model.ClientInfo;
@@ -14,6 +15,7 @@ import org.yangxin.im.service.group.model.req.SendGroupMessageReq;
 import org.yangxin.im.service.message.model.resp.SendMessageResp;
 import org.yangxin.im.service.message.service.CheckSendMessageService;
 import org.yangxin.im.service.message.service.MessageStoreService;
+import org.yangxin.im.service.seq.RedisSeq;
 import org.yangxin.im.service.util.MessageProducer;
 
 import javax.annotation.Resource;
@@ -36,6 +38,9 @@ public class GroupMessageService {
     @Resource
     private MessageStoreService messageStoreService;
 
+    @Resource
+    private RedisSeq redisSeq;
+
     private final ThreadPoolExecutor threadPoolExecutor;
 
     {
@@ -53,6 +58,9 @@ public class GroupMessageService {
         // 前置校验
         // 这个用户是否被禁言、是否被禁用
         // 发送方和接收方是否是好友
+        Long seq =
+                redisSeq.doGetSeq(messageContent.getAppId() + ":" + Constants.SeqConstants.GroupMessage + ":" + messageContent.getGroupId());
+        messageContent.setMessageSequence(seq);
         threadPoolExecutor.execute(() -> {
             messageStoreService.storeGroupMessage(messageContent);
             // 回 ack 给自己

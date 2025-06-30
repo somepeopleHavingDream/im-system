@@ -76,5 +76,6 @@ public class Constants {
 
     public static class SeqConstants {
         public static final String Message = "messageSeq";
+        public static final String GroupMessage = "groupMessageSeq";
     }
 }
