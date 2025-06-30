@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 import org.yangxin.im.common.constant.Constants;
 import org.yangxin.im.common.enums.command.MessageCommand;
 import org.yangxin.im.common.model.message.MessageContent;
+import org.yangxin.im.common.model.message.MessageReadedContent;
 import org.yangxin.im.common.model.message.MessageReceiveAckContent;
 import org.yangxin.im.service.message.service.MessageSyncService;
 import org.yangxin.im.service.message.service.P2PMessageService;
@@ -53,6 +54,9 @@ public class ChatOperateReceiver {
                 // 消息接收确认
                 MessageReceiveAckContent messageContent = jsonObject.toJavaObject(MessageReceiveAckContent.class);
                 messageSyncService.receiveMark(messageContent);
+            } else if (command.equals(MessageCommand.MSG_READED.getCommand())) {
+                MessageReadedContent messageContent = jsonObject.toJavaObject(MessageReadedContent.class);
+                messageSyncService.readMark(messageContent);
             }
             channel.basicAck(deliveryTag, false);
         } catch (Exception e) {
