@@ -10,5 +10,6 @@ public class MessageReadedContent extends ClientInfo {
     private long messageSequence;
     private String fromId;
     private String toId;
+    private String groupId;
     private Integer conversationType;
 }

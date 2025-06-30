@@ -10,3 +10,4 @@ im_message_history (app_id, owner_id, message_key)
 im_group_message_history (app_id, group_id, message_key)
 
 im_user_data (app_id, user_id)
+im_conversation_set (app_id, conversation_id)

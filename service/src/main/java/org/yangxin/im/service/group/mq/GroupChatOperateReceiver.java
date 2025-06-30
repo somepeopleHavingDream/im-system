@@ -2,6 +2,7 @@ package org.yangxin.im.service.group.mq;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
 import com.rabbitmq.client.Channel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,7 +18,9 @@ import org.springframework.stereotype.Component;
 import org.yangxin.im.common.constant.Constants;
 import org.yangxin.im.common.enums.command.GroupEventCommand;
 import org.yangxin.im.common.model.message.GroupChatMessageContent;
+import org.yangxin.im.common.model.message.MessageReadedContent;
 import org.yangxin.im.service.group.service.GroupMessageService;
+import org.yangxin.im.service.message.service.MessageSyncService;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -28,6 +31,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class GroupChatOperateReceiver {
     private final GroupMessageService groupMessageService;
+    private final MessageSyncService messageSyncService;
 
     @RabbitListener(
             bindings = @QueueBinding(
@@ -46,6 +50,10 @@ public class GroupChatOperateReceiver {
                 // 处理消息
                 GroupChatMessageContent messageContent = jsonObject.toJavaObject(GroupChatMessageContent.class);
                 groupMessageService.process(messageContent);
+            } else if (command.equals(GroupEventCommand.MSG_GROUP_READED.getCommand())) {
+                MessageReadedContent messageReaded = JSON.parseObject(msg, new TypeReference<MessageReadedContent>() {
+                }.getType());
+                messageSyncService.groupReadMark(messageReaded);
             }
             channel.basicAck(deliveryTag, false);
         } catch (Exception e) {
