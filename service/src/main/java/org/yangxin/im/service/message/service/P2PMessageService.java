@@ -52,7 +52,7 @@ public class P2PMessageService {
     public void process(MessageContent messageContent) {
         MessageContent messageFromMessageIdCache =
                 messageStoreService.getMessageFromMessageIdCache(messageContent.getAppId(),
-                        messageContent.getMessageId());
+                        messageContent.getMessageId(), MessageContent.class);
         if (messageFromMessageIdCache != null) {
             threadPoolExecutor.execute(() -> {
                 // 回 ack 给自己
@@ -84,7 +84,8 @@ public class P2PMessageService {
             // 发消息给对方在线端
             List<ClientInfo> clientInfos = dispatchMessage(messageContent);
             // 将 messageId 存到缓存中
-            messageStoreService.setMessageFromMessageIdCache(messageContent);
+            messageStoreService.setMessageFromMessageIdCache(messageContent.getAppId(), messageContent.getMessageId()
+                    , messageContent);
             if (clientInfos.isEmpty()) {
                 // 发送接受确认给发送方，要带上是服务端发送的标识
                 receiveAck(messageContent);

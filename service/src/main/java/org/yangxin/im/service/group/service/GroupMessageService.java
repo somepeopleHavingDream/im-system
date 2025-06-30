@@ -7,7 +7,6 @@ import org.yangxin.im.codec.pack.message.ChatMessageAck;
 import org.yangxin.im.common.ResponseVO;
 import org.yangxin.im.common.constant.Constants;
 import org.yangxin.im.common.enums.command.GroupEventCommand;
-import org.yangxin.im.common.enums.command.MessageCommand;
 import org.yangxin.im.common.model.ClientInfo;
 import org.yangxin.im.common.model.message.GroupChatMessageContent;
 import org.yangxin.im.common.model.message.MessageContent;
@@ -58,6 +57,19 @@ public class GroupMessageService {
         // 前置校验
         // 这个用户是否被禁言、是否被禁用
         // 发送方和接收方是否是好友
+        GroupChatMessageContent messageFromMessageIdCache =
+                messageStoreService.getMessageFromMessageIdCache(messageContent.getAppId(),
+                        messageContent.getMessageId(), GroupChatMessageContent.class);
+        if (messageFromMessageIdCache != null) {
+            threadPoolExecutor.execute(() -> {
+                // 回 ack 给自己
+                groupAck(messageContent, ResponseVO.successResponse());
+                // 发消息给同步在线端
+                syncToSender(messageContent, messageContent);
+                // 发消息给对方在线端
+                dispatchMessage(messageContent);
+            });
+        }
         Long seq =
                 redisSeq.doGetSeq(messageContent.getAppId() + ":" + Constants.SeqConstants.GroupMessage + ":" + messageContent.getGroupId());
         messageContent.setMessageSequence(seq);
@@ -69,6 +81,9 @@ public class GroupMessageService {
             syncToSender(messageContent, messageContent);
             // 发消息给对方在线端
             dispatchMessage(messageContent);
+
+            messageStoreService.setMessageFromMessageIdCache(messageContent.getAppId(), messageContent.getMessageId()
+                    , messageContent);
         });
     }
 
@@ -89,11 +104,12 @@ public class GroupMessageService {
         ChatMessageAck chatMessageAck = new ChatMessageAck(messageContent.getMessageId());
         responseVO.setData(chatMessageAck);
         // 发消息
-        messageProducer.sendToUser(messageContent.getFromId(), GroupEventCommand.MSG_GROUP, responseVO, messageContent);
+        messageProducer.sendToUser(messageContent.getFromId(), GroupEventCommand.GROUP_MSG_ACK, responseVO,
+                messageContent);
     }
 
     private void syncToSender(GroupChatMessageContent messageContent, ClientInfo clientInfo) {
-        messageProducer.sendToUserExceptClient(messageContent.getFromId(), MessageCommand.MSG_P2P, messageContent,
+        messageProducer.sendToUserExceptClient(messageContent.getFromId(), GroupEventCommand.MSG_GROUP, messageContent,
                 messageContent);
     }
 

@@ -56,18 +56,17 @@ public class MessageStoreService {
         messageContent.setMessageKey(imMessageBody.getMessageKey());
     }
 
-    public void setMessageFromMessageIdCache(MessageContent messageContent) {
-        String key =
-                messageContent.getAppId() + ":" + Constants.RedisConstants.cacheMessage + ":" + messageContent.getMessageId();
+    public void setMessageFromMessageIdCache(Integer appId, String messageId, Object messageContent) {
+        String key = appId + ":" + Constants.RedisConstants.cacheMessage + ":" + messageId;
         stringRedisTemplate.opsForValue().set(key, JSON.toJSONString(messageContent), 300, TimeUnit.SECONDS);
     }
 
-    public MessageContent getMessageFromMessageIdCache(Integer appId, String messageId) {
+    public <T> T getMessageFromMessageIdCache(Integer appId, String messageId, Class<T> clazz) {
         String key = appId + ":" + Constants.RedisConstants.cacheMessage + ":" + messageId;
         String msg = stringRedisTemplate.opsForValue().get(key);
         if (StringUtils.isBlank(msg)) {
             return null;
         }
-        return JSONObject.parseObject(msg, MessageContent.class);
+        return JSONObject.parseObject(msg, clazz);
     }
 }
