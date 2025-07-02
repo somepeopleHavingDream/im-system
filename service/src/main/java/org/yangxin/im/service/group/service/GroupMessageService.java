@@ -10,6 +10,7 @@ import org.yangxin.im.common.enums.command.GroupEventCommand;
 import org.yangxin.im.common.model.ClientInfo;
 import org.yangxin.im.common.model.message.GroupChatMessageContent;
 import org.yangxin.im.common.model.message.MessageContent;
+import org.yangxin.im.common.model.message.OfflineMessageContent;
 import org.yangxin.im.service.group.model.req.SendGroupMessageReq;
 import org.yangxin.im.service.message.model.resp.SendMessageResp;
 import org.yangxin.im.service.message.service.CheckSendMessageService;
@@ -75,6 +76,13 @@ public class GroupMessageService {
         messageContent.setMessageSequence(seq);
         threadPoolExecutor.execute(() -> {
             messageStoreService.storeGroupMessage(messageContent);
+            List<String> groupMemberId = imGroupMemberService.getGroupMemberId(messageContent.getGroupId(),
+                    messageContent.getAppId());
+            messageContent.setMemberId(groupMemberId);
+            OfflineMessageContent offlineMessageContent = new OfflineMessageContent();
+            BeanUtils.copyProperties(messageContent, offlineMessageContent);
+            offlineMessageContent.setToId(messageContent.getGroupId());
+            messageStoreService.storeGroupOfflineMessage(offlineMessageContent, groupMemberId);
             // 回 ack 给自己
             groupAck(messageContent, ResponseVO.successResponse());
             // 发消息给同步在线端
@@ -88,9 +96,7 @@ public class GroupMessageService {
     }
 
     private void dispatchMessage(GroupChatMessageContent messageContent) {
-        List<String> groupMemberId = imGroupMemberService.getGroupMemberId(messageContent.getGroupId(),
-                messageContent.getAppId());
-        for (String memberId : groupMemberId) {
+        for (String memberId : messageContent.getMemberId()) {
             if (!memberId.equals(messageContent.getFromId())) {
                 messageProducer.sendToUser(memberId, GroupEventCommand.MSG_GROUP, messageContent,
                         messageContent.getAppId());

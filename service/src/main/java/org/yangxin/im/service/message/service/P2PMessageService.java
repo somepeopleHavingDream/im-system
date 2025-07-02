@@ -7,9 +7,11 @@ import org.yangxin.im.codec.pack.message.ChatMessageAck;
 import org.yangxin.im.codec.pack.message.MessageReceiveServerAckPack;
 import org.yangxin.im.common.ResponseVO;
 import org.yangxin.im.common.constant.Constants;
+import org.yangxin.im.common.enums.ConversationTypeEnum;
 import org.yangxin.im.common.enums.command.MessageCommand;
 import org.yangxin.im.common.model.ClientInfo;
 import org.yangxin.im.common.model.message.MessageContent;
+import org.yangxin.im.common.model.message.OfflineMessageContent;
 import org.yangxin.im.service.message.model.req.SendMessageReq;
 import org.yangxin.im.service.message.model.resp.SendMessageResp;
 import org.yangxin.im.service.seq.RedisSeq;
@@ -77,6 +79,11 @@ public class P2PMessageService {
         threadPoolExecutor.execute(() -> {
             // 插入数据
             messageStoreService.storeP2PMessage(messageContent);
+            // 插入离线消息
+            OfflineMessageContent offlineMessageContent = new OfflineMessageContent();
+            BeanUtils.copyProperties(messageContent, offlineMessageContent);
+            offlineMessageContent.setConversationType(ConversationTypeEnum.P2P.getCode());
+            messageStoreService.storeOfflineMessage(offlineMessageContent);
             // 回 ack 给自己
             ack(messageContent, ResponseVO.successResponse());
             // 发消息给同步在线端

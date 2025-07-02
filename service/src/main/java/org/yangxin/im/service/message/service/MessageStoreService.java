@@ -6,13 +6,19 @@ import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.yangxin.im.common.config.AppConfig;
 import org.yangxin.im.common.constant.Constants;
+import org.yangxin.im.common.enums.ConversationTypeEnum;
 import org.yangxin.im.common.enums.DelFlagEnum;
 import org.yangxin.im.common.model.message.*;
+import org.yangxin.im.service.conversation.service.ConversationService;
 import org.yangxin.im.service.util.SnowflakeIdWorker;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 @Service
@@ -20,6 +26,9 @@ import java.util.concurrent.TimeUnit;
 public class MessageStoreService {
     private final RabbitTemplate rabbitTemplate;
     private final StringRedisTemplate stringRedisTemplate;
+
+    private final ConversationService conversationService;
+    private final AppConfig appConfig;
 
     @Transactional
     public void storeP2PMessage(MessageContent messageContent) {
@@ -42,7 +51,6 @@ public class MessageStoreService {
         messageBody.setDelFlag(DelFlagEnum.NORMAL.getCode());
         messageBody.setMessageTime(messageContent.getMessageTime());
         messageBody.setMessageBody(messageContent.getMessageBody());
-
         return messageBody;
     }
 
@@ -68,5 +76,41 @@ public class MessageStoreService {
             return null;
         }
         return JSONObject.parseObject(msg, clazz);
+    }
+
+    public void storeOfflineMessage(OfflineMessageContent offlineMessage) {
+        String fromKey =
+                offlineMessage.getAppId() + ":" + Constants.RedisConstants.OfflineMessage + ":" + offlineMessage.getFromId();
+        String toKey =
+                offlineMessage.getAppId() + ":" + Constants.RedisConstants.OfflineMessage + ":" + offlineMessage.getToId();
+
+        ZSetOperations<String, String> operations = stringRedisTemplate.opsForZSet();
+        if (Optional.ofNullable(operations.zCard(fromKey)).orElse(0L) > appConfig.getOfflineMessageCount()) {
+            operations.removeRange(fromKey, 0, 0);
+        }
+        offlineMessage.setConversationId(conversationService.convertConversationId(ConversationTypeEnum.P2P.getCode()
+                , offlineMessage.getFromId(), offlineMessage.getToId()));
+        operations.add(fromKey, JSONObject.toJSONString(offlineMessage), offlineMessage.getMessageKey());
+        if (Optional.ofNullable(operations.zCard(toKey)).orElse(0L) > appConfig.getOfflineMessageCount()) {
+            operations.removeRange(toKey, 0, 0);
+        }
+        offlineMessage.setConversationId(conversationService.convertConversationId(ConversationTypeEnum.P2P.getCode()
+                , offlineMessage.getToId(), offlineMessage.getFromId()));
+        operations.add(toKey, JSONObject.toJSONString(offlineMessage), offlineMessage.getMessageKey());
+    }
+
+    public void storeGroupOfflineMessage(OfflineMessageContent offlineMessage, List<String> memberIds) {
+        ZSetOperations<String, String> operations = stringRedisTemplate.opsForZSet();
+        offlineMessage.setConversationType(ConversationTypeEnum.GROUP.getCode());
+        for (String memberId : memberIds) {
+            String toKey =
+                    offlineMessage.getAppId() + ":" + Constants.RedisConstants.OfflineMessage + ":" + memberId;
+            offlineMessage.setConversationId(conversationService.convertConversationId(ConversationTypeEnum.GROUP.getCode()
+                    , memberId, offlineMessage.getToId()));
+            if (Optional.ofNullable(operations.zCard(toKey)).orElse(0L) > appConfig.getOfflineMessageCount()) {
+                operations.removeRange(toKey, 0, 0);
+            }
+            operations.add(toKey, JSONObject.toJSONString(offlineMessage), offlineMessage.getMessageKey());
+        }
     }
 }
