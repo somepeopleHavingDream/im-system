@@ -16,6 +16,7 @@ public class Constants {
         public static final String UserSessionConstants = ":userSession:";
         public static final String cacheMessage = "cacheMessage";
         public static final String OfflineMessage = "offlineMessage";
+        public static final String SeqPrefix = "seq";
     }
 
     public static class RabbitConstants {
@@ -78,5 +79,16 @@ public class Constants {
     public static class SeqConstants {
         public static final String Message = "messageSeq";
         public static final String GroupMessage = "groupMessageSeq";
+        public static final String Friendship = "friendshipSeq";
+
+//        public static final String FriendshipBlack = "friendshipBlackSeq";
+
+        public static final String FriendshipRequest = "friendshipRequestSeq";
+
+        public static final String FriendshipGroup = "friendshipGrouptSeq";
+
+        public static final String Group = "groupSeq";
+
+        public static final String Conversation = "conversationSeq";
     }
 }
