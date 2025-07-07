@@ -160,7 +160,6 @@ public class ImFriendServiceImpl implements ImFriendService {
         return ResponseVO.successResponse();
     }
 
-    @SuppressWarnings("UnnecessaryLocalVariable")
     @Override
     public ResponseVO updateFriend(UpdateFriendReq req) {
 
@@ -229,7 +228,7 @@ public class ImFriendServiceImpl implements ImFriendService {
         query.eq("to_id", dto.getToId());
         ImFriendShipEntity fromItem = imFriendShipMapper.selectOne(query);
         //如果存在则判断状态，如果是已添加，则提示已添加，如果是未添加，则修改状态
-        long seq = 0L;
+        long seq;
         if (fromItem == null) {
             //走添加逻辑。
             fromItem = new ImFriendShipEntity();
@@ -421,7 +420,7 @@ public class ImFriendServiceImpl implements ImFriendService {
         Map<String, Integer> toIdMap
                 = req.getToIds().stream().collect(Collectors
                 .toMap(Function.identity(), s -> 0));
-        List<CheckFriendShipResp> result = new ArrayList<>();
+        List<CheckFriendShipResp> result;
         if (req.getCheckType() == CheckFriendShipTypeEnum.SINGLE.getType()) {
             result = imFriendShipMapper.checkFriendShipBlack(req);
         } else {
@@ -466,7 +465,7 @@ public class ImFriendServiceImpl implements ImFriendService {
 
         ImFriendShipEntity fromItem = imFriendShipMapper.selectOne(query);
         //如果存在则判断状态，如果是拉黑，则提示已拉黑，如果是未拉黑，则修改状态
-        Long seq = 0L;
+        Long seq;
         if (fromItem == null) {
             //走添加逻辑。
             seq = redisSeq.doGetSeq(req.getAppId() + ":" + Constants.SeqConstants.Friendship);
@@ -559,7 +558,7 @@ public class ImFriendServiceImpl implements ImFriendService {
                 = req.getToIds().stream()
                 .collect(Collectors.toMap(Function.identity(), s -> 0));
 
-        List<CheckFriendShipResp> resp = new ArrayList<>();
+        List<CheckFriendShipResp> resp;
 
         if (req.getCheckType() == CheckFriendShipTypeEnum.SINGLE.getType()) {
             resp = imFriendShipMapper.checkFriendShip(req);
