@@ -8,7 +8,7 @@ import org.yangxin.im.common.constant.Constants;
 @Service
 @RequiredArgsConstructor
 public class WriteUserSeq {
-    private final RedisTemplate<String, Object> redisTemplate;
+    private final RedisTemplate redisTemplate;
 
     public void writeUserSeq(Integer appId, String userId, String type, Long seq) {
         String key = appId + ":" + Constants.RedisConstants.SeqPrefix + ":" + userId;

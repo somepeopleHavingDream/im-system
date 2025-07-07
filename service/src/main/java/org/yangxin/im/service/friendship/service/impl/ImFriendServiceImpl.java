@@ -279,7 +279,6 @@ public class ImFriendServiceImpl implements ImFriendService {
         toQuery.eq("to_id", fromId);
         ImFriendShipEntity toItem = imFriendShipMapper.selectOne(toQuery);
         if (toItem == null) {
-            seq = redisSeq.doGetSeq(appId + ":" + Constants.SeqConstants.Friendship);
             toItem = new ImFriendShipEntity();
             toItem.setAppId(appId);
             toItem.setFromId(dto.getToId());
@@ -290,15 +289,14 @@ public class ImFriendServiceImpl implements ImFriendService {
             toItem.setCreateTime(System.currentTimeMillis());
 //            toItem.setBlack(FriendShipStatusEnum.BLACK_STATUS_NORMAL.getCode());
             int insert = imFriendShipMapper.insert(toItem);
-            writeUserSeq.writeUserSeq(appId, fromId, Constants.SeqConstants.Friendship, seq);
+            writeUserSeq.writeUserSeq(appId, dto.getToId(), Constants.SeqConstants.Friendship, seq);
         } else if (FriendShipStatusEnum.FRIEND_STATUS_NORMAL.getCode() !=
                 toItem.getStatus()) {
-            seq = redisSeq.doGetSeq(appId + ":" + Constants.SeqConstants.Friendship);
             ImFriendShipEntity update = new ImFriendShipEntity();
             update.setFriendSequence(seq);
             update.setStatus(FriendShipStatusEnum.FRIEND_STATUS_NORMAL.getCode());
             imFriendShipMapper.update(update, toQuery);
-            writeUserSeq.writeUserSeq(appId, fromId, Constants.SeqConstants.Friendship, seq);
+            writeUserSeq.writeUserSeq(appId, dto.getToId(), Constants.SeqConstants.Friendship, seq);
         }
 
         // 发送给 from

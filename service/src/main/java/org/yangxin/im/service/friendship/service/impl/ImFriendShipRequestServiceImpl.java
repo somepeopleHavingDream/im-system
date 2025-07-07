@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.yangxin.im.codec.pack.friendship.ApproverFriendRequestPack;
 import org.yangxin.im.codec.pack.friendship.ReadAllFriendRequestPack;
 import org.yangxin.im.common.ResponseVO;
+import org.yangxin.im.common.constant.Constants;
 import org.yangxin.im.common.enums.ApproverFriendRequestStatusEnum;
 import org.yangxin.im.common.enums.FriendShipErrorCode;
 import org.yangxin.im.common.enums.command.FriendshipEventCommand;
@@ -19,7 +20,9 @@ import org.yangxin.im.service.friendship.model.req.FriendDto;
 import org.yangxin.im.service.friendship.model.req.ReadFriendShipRequestReq;
 import org.yangxin.im.service.friendship.service.ImFriendService;
 import org.yangxin.im.service.friendship.service.ImFriendShipRequestService;
+import org.yangxin.im.service.seq.RedisSeq;
 import org.yangxin.im.service.util.MessageProducer;
+import org.yangxin.im.service.util.WriteUserSeq;
 
 import java.util.List;
 
@@ -36,6 +39,12 @@ public class ImFriendShipRequestServiceImpl implements ImFriendShipRequestServic
 
     @Autowired
     MessageProducer messageProducer;
+
+    @Autowired
+    RedisSeq redisSeq;
+
+    @Autowired
+    WriteUserSeq writeUserSeq;
 
     @Override
     public ResponseVO getFriendRequest(String fromId, Integer appId) {
@@ -60,10 +69,13 @@ public class ImFriendShipRequestServiceImpl implements ImFriendShipRequestServic
         queryWrapper.eq("to_id", dto.getToId());
         ImFriendShipRequestEntity request = imFriendShipRequestMapper.selectOne(queryWrapper);
 
+        Long seq = redisSeq.doGetSeq(appId + ":" + Constants.SeqConstants.FriendshipRequest);
+
         if (request == null) {
             request = new ImFriendShipRequestEntity();
             request.setAddSource(dto.getAddSource());
             request.setAddWording(dto.getAddWording());
+            request.setSequence(seq);
             request.setAppId(appId);
             request.setFromId(fromId);
             request.setToId(dto.getToId());
@@ -80,8 +92,11 @@ public class ImFriendShipRequestServiceImpl implements ImFriendShipRequestServic
             if (StringUtils.isNotBlank(dto.getAddWording())) request.setAddWording(dto.getAddWording());
             request.setApproveStatus(0);
             request.setReadStatus(0);
+            request.setSequence(seq);
             imFriendShipRequestMapper.updateById(request);
         }
+
+        writeUserSeq.writeUserSeq(appId, dto.getToId(), Constants.SeqConstants.FriendshipRequest, seq);
 
         // 发送好友申请的 tcp 给接收端
         messageProducer.sendToUser(dto.getToId(), null, "", FriendshipEventCommand.FRIEND_REQUEST, request, appId);
@@ -101,11 +116,16 @@ public class ImFriendShipRequestServiceImpl implements ImFriendShipRequestServic
         if (!req.getOperater().equals(imFriendShipRequestEntity.getToId()))
             throw new ApplicationException(FriendShipErrorCode.NOT_APPROVER_OTHER_MAN_REQUEST);
 
+        Long seq = redisSeq.doGetSeq(req.getAppId() + ":" + Constants.SeqConstants.FriendshipRequest);
+
         ImFriendShipRequestEntity update = new ImFriendShipRequestEntity();
         update.setApproveStatus(req.getStatus());
         update.setUpdateTime(System.currentTimeMillis());
+        update.setSequence(seq);
         update.setId(req.getId());
         imFriendShipRequestMapper.updateById(update);
+
+        writeUserSeq.writeUserSeq(req.getAppId(), req.getOperater(), Constants.SeqConstants.FriendshipRequest, seq);
 
         if (ApproverFriendRequestStatusEnum.AGREE.getCode() == req.getStatus()) {
             //同意 ===> 去执行添加好友逻辑
@@ -114,7 +134,8 @@ public class ImFriendShipRequestServiceImpl implements ImFriendShipRequestServic
             dto.setAddWording(imFriendShipRequestEntity.getAddWording());
             dto.setRemark(imFriendShipRequestEntity.getRemark());
             dto.setToId(imFriendShipRequestEntity.getToId());
-            ResponseVO responseVO = imFriendShipService.doAddFriend(req, imFriendShipRequestEntity.getFromId(), dto, req.getAppId());
+            ResponseVO responseVO = imFriendShipService.doAddFriend(req, imFriendShipRequestEntity.getFromId(), dto,
+                    req.getAppId());
 //            if(!responseVO.isOk()){
 ////                TransactionAspectSupport.currentTransactionStatus().setRollbackOnly();
 //                return responseVO;
@@ -125,8 +146,10 @@ public class ImFriendShipRequestServiceImpl implements ImFriendShipRequestServic
 
         ApproverFriendRequestPack approverFriendRequestPack = new ApproverFriendRequestPack();
         approverFriendRequestPack.setId(req.getId());
+        approverFriendRequestPack.setSequence(seq);
         approverFriendRequestPack.setStatus(req.getStatus());
-        messageProducer.sendToUser(imFriendShipRequestEntity.getToId(), req.getClientType(), req.getImei(), FriendshipEventCommand.FRIEND_REQUEST_APPROVER, approverFriendRequestPack, req.getAppId());
+        messageProducer.sendToUser(imFriendShipRequestEntity.getToId(), req.getClientType(), req.getImei(),
+                FriendshipEventCommand.FRIEND_REQUEST_APPROVER, approverFriendRequestPack, req.getAppId());
 
         return ResponseVO.successResponse();
     }
@@ -137,14 +160,20 @@ public class ImFriendShipRequestServiceImpl implements ImFriendShipRequestServic
         query.eq("app_id", req.getAppId());
         query.eq("to_id", req.getFromId());
 
+        Long seq = redisSeq.doGetSeq(req.getAppId() + ":" + Constants.SeqConstants.FriendshipRequest);
+
         ImFriendShipRequestEntity update = new ImFriendShipRequestEntity();
         update.setReadStatus(1);
+        update.setSequence(seq);
         imFriendShipRequestMapper.update(update, query);
+        writeUserSeq.writeUserSeq(req.getAppId(), req.getOperater(), Constants.SeqConstants.FriendshipRequest, seq);
 
         // tcp 通知
         ReadAllFriendRequestPack readAllFriendRequestPack = new ReadAllFriendRequestPack();
         readAllFriendRequestPack.setFromId(req.getFromId());
-        messageProducer.sendToUser(req.getFromId(), req.getClientType(), req.getImei(), FriendshipEventCommand.FRIEND_REQUEST_READ, readAllFriendRequestPack, req.getAppId());
+        readAllFriendRequestPack.setSequence(seq);
+        messageProducer.sendToUser(req.getFromId(), req.getClientType(), req.getImei(),
+                FriendshipEventCommand.FRIEND_REQUEST_READ, readAllFriendRequestPack, req.getAppId());
 
         return ResponseVO.successResponse();
     }
