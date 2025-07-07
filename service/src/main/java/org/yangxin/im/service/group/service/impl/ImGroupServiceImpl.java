@@ -22,6 +22,8 @@ import org.yangxin.im.common.enums.GroupTypeEnum;
 import org.yangxin.im.common.enums.command.GroupEventCommand;
 import org.yangxin.im.common.exception.ApplicationException;
 import org.yangxin.im.common.model.ClientInfo;
+import org.yangxin.im.common.model.SyncReq;
+import org.yangxin.im.common.model.SyncResp;
 import org.yangxin.im.service.friendship.model.callback.DestroyGroupCallbackDto;
 import org.yangxin.im.service.group.dao.ImGroupEntity;
 import org.yangxin.im.service.group.dao.mapper.ImGroupMapper;
@@ -435,6 +437,46 @@ public class ImGroupServiceImpl implements ImGroupService {
         imGroupDataMapper.update(update, wrapper);
 
         return ResponseVO.successResponse();
+    }
+
+    @Override
+    public ResponseVO syncJoinedGroupList(SyncReq req) {
+        if (req.getMaxLimit() > 100) {
+            req.setMaxLimit(100);
+        }
+
+        SyncResp<ImGroupEntity> resp = new SyncResp<>();
+
+        ResponseVO<Collection<String>> memberJoinedGroup = groupMemberService.syncMemberJoinedGroup(req.getOperater()
+                , req.getAppId());
+        if (memberJoinedGroup.isOk()) {
+
+            Collection<String> data = memberJoinedGroup.getData();
+            QueryWrapper<ImGroupEntity> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("app_id", req.getAppId());
+            queryWrapper.in("group_id", data);
+            queryWrapper.gt("sequence", req.getLastSequence());
+            queryWrapper.last(" limit " + req.getMaxLimit());
+            queryWrapper.orderByAsc("sequence");
+
+            List<ImGroupEntity> list = imGroupDataMapper.selectList(queryWrapper);
+
+            if (!CollectionUtils.isEmpty(list)) {
+                ImGroupEntity maxSeqEntity
+                        = list.get(list.size() - 1);
+                resp.setDataList(list);
+                //设置最大seq
+                Long maxSeq =
+                        imGroupDataMapper.getGroupMaxSeq(data, req.getAppId());
+                resp.setMaxSequence(maxSeq);
+                //设置是否拉取完毕
+                resp.setCompleted(maxSeqEntity.getSequence() >= maxSeq);
+                return ResponseVO.successResponse(resp);
+            }
+
+        }
+        resp.setCompleted(true);
+        return ResponseVO.successResponse(resp);
     }
 
 }

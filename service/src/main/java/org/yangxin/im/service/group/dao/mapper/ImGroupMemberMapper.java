@@ -1,20 +1,21 @@
 package org.yangxin.im.service.group.dao.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import org.yangxin.im.service.group.dao.ImGroupMemberEntity;
-import org.yangxin.im.service.group.model.req.GroupMemberDto;
 import org.apache.ibatis.annotations.Result;
 import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 import org.springframework.stereotype.Repository;
+import org.yangxin.im.service.group.dao.ImGroupMemberEntity;
+import org.yangxin.im.service.group.model.req.GroupMemberDto;
 
 import java.util.List;
 
+@SuppressWarnings("SqlDialectInspection")
 @Repository
 public interface ImGroupMemberMapper extends BaseMapper<ImGroupMemberEntity> {
 
     @Select("select group_id from im_group_member where app_id = #{appId} AND member_id = #{memberId} ")
-    public List<String> getJoinedGroupId(Integer appId, String memberId);
+    List<String> getJoinedGroupId(Integer appId, String memberId);
 
 
     @Results({
@@ -35,12 +36,12 @@ public interface ImGroupMemberMapper extends BaseMapper<ImGroupMemberEntity> {
             " join_time ," +
             " join_type " +
             " from im_group_member where app_id = #{appId} AND group_id = #{groupId} ")
-    public List<GroupMemberDto> getGroupMember(Integer appId, String groupId);
+    List<GroupMemberDto> getGroupMember(Integer appId, String groupId);
 
     @Select("select " +
             " member_id " +
             " from im_group_member where app_id = #{appId} AND group_id = #{groupId} and role != 3")
-    public List<String> getGroupMemberId(Integer appId, String groupId);
+    List<String> getGroupMemberId(Integer appId, String groupId);
 
 
     @Results({
@@ -59,6 +60,9 @@ public interface ImGroupMemberMapper extends BaseMapper<ImGroupMemberEntity> {
 //            " join_time ," +
 //            " join_type " +
             " from im_group_member where app_id = #{appId} AND group_id = #{groupId} and role in (1,2) ")
-    public List<GroupMemberDto> getGroupManager(String groupId, Integer appId);
+    List<GroupMemberDto> getGroupManager(String groupId, Integer appId);
 
+    @Select("select group_id from im_group_member where app_id = #{appId} AND member_id = #{memberId} and role != " +
+            "#{role}")
+    List<String> syncJoinedGroupId(Integer appId, String memberId, int role);
 }

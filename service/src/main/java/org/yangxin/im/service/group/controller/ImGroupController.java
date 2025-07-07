@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.yangxin.im.common.ResponseVO;
+import org.yangxin.im.common.model.SyncReq;
 import org.yangxin.im.service.group.model.req.*;
 import org.yangxin.im.service.group.service.GroupMessageService;
 import org.yangxin.im.service.group.service.ImGroupService;
@@ -81,5 +82,11 @@ public class ImGroupController {
         req.setAppId(appId);
         req.setOperater(identifier);
         return ResponseVO.successResponse(groupMessageService.send(req));
+    }
+
+    @RequestMapping("/syncJoinedGroup")
+    public ResponseVO syncJoinedGroup(@RequestBody @Validated SyncReq req, Integer appId, String identifier) {
+        req.setAppId(appId);
+        return groupService.syncJoinedGroupList(req);
     }
 }

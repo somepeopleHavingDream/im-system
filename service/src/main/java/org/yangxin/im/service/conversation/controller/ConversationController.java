@@ -6,6 +6,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.yangxin.im.common.ResponseVO;
+import org.yangxin.im.common.model.SyncReq;
 import org.yangxin.im.service.conversation.model.DeleteConversationReq;
 import org.yangxin.im.service.conversation.model.UpdateConversationReq;
 import org.yangxin.im.service.conversation.service.ConversationService;
@@ -31,5 +32,11 @@ public class ConversationController {
         req.setAppId(appId);
 //        req.setOperater(identifier);
         return conversationService.updateConversation(req);
+    }
+
+    @RequestMapping("/syncConversationList")
+    public ResponseVO syncFriendShipList(@RequestBody @Validated SyncReq req, Integer appId) {
+        req.setAppId(appId);
+        return conversationService.syncConversationSet(req);
     }
 }
