@@ -8,4 +8,5 @@ public class UpdateConversationPack {
     private Integer isMute;
     private Integer isTop;
     private Integer conversationType;
+    private Long sequence;
 }

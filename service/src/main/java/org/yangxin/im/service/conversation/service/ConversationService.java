@@ -8,6 +8,7 @@ import org.yangxin.im.codec.pack.conversation.DeleteConversationPack;
 import org.yangxin.im.codec.pack.conversation.UpdateConversationPack;
 import org.yangxin.im.common.ResponseVO;
 import org.yangxin.im.common.config.AppConfig;
+import org.yangxin.im.common.constant.Constants;
 import org.yangxin.im.common.enums.ConversationErrorCode;
 import org.yangxin.im.common.enums.ConversationTypeEnum;
 import org.yangxin.im.common.enums.command.ConversationEventCommand;
@@ -17,7 +18,9 @@ import org.yangxin.im.service.conversation.dao.ImConversationSetEntity;
 import org.yangxin.im.service.conversation.dao.mapper.ImConversationSetMapper;
 import org.yangxin.im.service.conversation.model.DeleteConversationReq;
 import org.yangxin.im.service.conversation.model.UpdateConversationReq;
+import org.yangxin.im.service.seq.RedisSeq;
 import org.yangxin.im.service.util.MessageProducer;
+import org.yangxin.im.service.util.WriteUserSeq;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +28,8 @@ public class ConversationService {
     private final ImConversationSetMapper imConversationSetMapper;
     private final MessageProducer messageProducer;
     private final AppConfig appConfig;
+    private final RedisSeq redisSeq;
+    private final WriteUserSeq writeUserSeq;
 
     public String convertConversationId(Integer type, String fromId, String toId) {
         return type + "_" + fromId + "_" + toId;
@@ -44,13 +49,21 @@ public class ConversationService {
         ImConversationSetEntity imConversationSetEntity = imConversationSetMapper.selectOne(query);
         if (imConversationSetEntity == null) {
             imConversationSetEntity = new ImConversationSetEntity();
+            long seq = redisSeq.doGetSeq(messageReadedContent.getAppId() + ":" + Constants.SeqConstants.Conversation);
             imConversationSetEntity.setConversationId(conversationId);
             BeanUtils.copyProperties(messageReadedContent, imConversationSetEntity);
             imConversationSetEntity.setReadedSequence(messageReadedContent.getMessageSequence());
+            imConversationSetEntity.setSequence(seq);
             imConversationSetMapper.insert(imConversationSetEntity);
+            writeUserSeq.writeUserSeq(messageReadedContent.getAppId(),
+                    messageReadedContent.getFromId(), Constants.SeqConstants.Conversation, seq);
         } else {
+            long seq = redisSeq.doGetSeq(messageReadedContent.getAppId() + ":" + Constants.SeqConstants.Conversation);
+            imConversationSetEntity.setSequence(seq);
             imConversationSetEntity.setReadedSequence(messageReadedContent.getMessageSequence());
             imConversationSetMapper.readMark(imConversationSetEntity);
+            writeUserSeq.writeUserSeq(messageReadedContent.getAppId(),
+                    messageReadedContent.getFromId(), Constants.SeqConstants.Conversation, seq);
         }
     }
 
@@ -74,18 +87,23 @@ public class ConversationService {
         queryWrapper.eq("app_id", req.getAppId());
         ImConversationSetEntity imConversationSetEntity = imConversationSetMapper.selectOne(queryWrapper);
         if (imConversationSetEntity != null) {
+            long seq = redisSeq.doGetSeq(req.getAppId() + ":" + Constants.SeqConstants.Conversation);
             if (req.getIsTop() != null) {
                 imConversationSetEntity.setIsTop(req.getIsTop());
             }
             if (req.getIsMute() != null) {
                 imConversationSetEntity.setIsMute(req.getIsMute());
             }
+            imConversationSetEntity.setSequence(seq);
             imConversationSetMapper.update(imConversationSetEntity, queryWrapper);
+            writeUserSeq.writeUserSeq(req.getAppId(), req.getFromId(),
+                    Constants.SeqConstants.Conversation, seq);
 
             UpdateConversationPack pack = new UpdateConversationPack();
             pack.setConversationId(req.getConversationId());
             pack.setIsMute(imConversationSetEntity.getIsMute());
             pack.setIsTop(imConversationSetEntity.getIsTop());
+            pack.setSequence(seq);
             pack.setConversationType(imConversationSetEntity.getConversationType());
             messageProducer.sendToUserExceptClient(req.getFromId(), ConversationEventCommand.CONVERSATION_UPDATE,
                     pack, new ClientInfo(req.getAppId(), req.getClientType(), req.getImei()));
