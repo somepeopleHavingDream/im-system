@@ -6,9 +6,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.yangxin.im.common.ResponseVO;
+import org.yangxin.im.common.model.SyncReq;
 import org.yangxin.im.service.friendship.model.req.*;
 import org.yangxin.im.service.friendship.service.ImFriendService;
 
+@SuppressWarnings("rawtypes")
 @RestController
 @RequestMapping("v1/friendship")
 public class ImFriendShipController {
@@ -82,5 +84,9 @@ public class ImFriendShipController {
         return imFriendShipService.checkBlck(req);
     }
 
-
+    @RequestMapping("/syncFriendshipList")
+    public ResponseVO syncFriendshipList(@RequestBody @Validated SyncReq req, Integer appId) {
+        req.setAppId(appId);
+        return imFriendShipService.syncFriendshipList(req);
+    }
 }

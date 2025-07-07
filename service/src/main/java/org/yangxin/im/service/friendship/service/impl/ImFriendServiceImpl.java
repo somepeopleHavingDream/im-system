@@ -3,6 +3,7 @@ package org.yangxin.im.service.friendship.service.impl;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,8 @@ import org.yangxin.im.common.enums.FriendShipStatusEnum;
 import org.yangxin.im.common.enums.command.FriendshipEventCommand;
 import org.yangxin.im.common.exception.ApplicationException;
 import org.yangxin.im.common.model.RequestBase;
+import org.yangxin.im.common.model.SyncReq;
+import org.yangxin.im.common.model.SyncResp;
 import org.yangxin.im.service.friendship.dao.ImFriendShipEntity;
 import org.yangxin.im.service.friendship.dao.mapper.ImFriendShipMapper;
 import org.yangxin.im.service.friendship.model.callback.AddFriendAfterCallbackDto;
@@ -443,6 +446,35 @@ public class ImFriendServiceImpl implements ImFriendService {
         }
 
         return ResponseVO.successResponse(result);
+    }
+
+    @Override
+    public ResponseVO syncFriendshipList(SyncReq req) {
+        if (req.getMaxLimit() > 100) {
+            req.setMaxLimit(100);
+        }
+
+        SyncResp<ImFriendShipEntity> resp = new SyncResp<>();
+        QueryWrapper<ImFriendShipEntity> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("from_id", req.getOperater());
+        queryWrapper.gt("friend_sequence", req.getLastSequence());
+        queryWrapper.last(" limit " + req.getMaxLimit());
+        queryWrapper.orderByAsc("friend_sequence");
+        List<ImFriendShipEntity> list = imFriendShipMapper.selectList(queryWrapper);
+
+        if (!CollectionUtils.isEmpty(list)) {
+            ImFriendShipEntity maxSeqEntity = list.get(list.size() - 1);
+            resp.setDataList(list);
+            // 设置最大 seq
+            Long friendShipMaxSeq = imFriendShipMapper.getFriendShipMaxSeq(req.getAppId(), req.getOperater());
+            resp.setMaxSequence(friendShipMaxSeq);
+            // 设置是否拉取完毕
+            resp.setCompleted(maxSeqEntity.getFriendSequence() >= friendShipMaxSeq);
+            return ResponseVO.successResponse(resp);
+        }
+
+        resp.setCompleted(true);
+        return ResponseVO.successResponse(resp);
     }
 
 
