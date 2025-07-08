@@ -7,7 +7,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.yangxin.im.common.ResponseVO;
 import org.yangxin.im.common.model.CheckSendMessageReq;
+import org.yangxin.im.common.model.SyncReq;
 import org.yangxin.im.service.message.model.req.SendMessageReq;
+import org.yangxin.im.service.message.service.MessageSyncService;
 import org.yangxin.im.service.message.service.P2PMessageService;
 
 @SuppressWarnings("rawtypes")
@@ -16,6 +18,7 @@ import org.yangxin.im.service.message.service.P2PMessageService;
 @RequiredArgsConstructor
 public class MessageController {
     private final P2PMessageService p2PMessageService;
+    private final MessageSyncService messageSyncService;
 
     @RequestMapping("/send")
     public ResponseVO send(@RequestBody @Validated SendMessageReq req, Integer appId) {
@@ -26,5 +29,12 @@ public class MessageController {
     @RequestMapping("/checkSend")
     public ResponseVO checkSend(@RequestBody @Validated CheckSendMessageReq req) {
         return p2PMessageService.imServerPermissionCheck(req.getFromId(), req.getToId(), req.getAppId());
+    }
+
+    @RequestMapping("/syncOfflineMessage")
+    public ResponseVO syncOfflineMessage(@RequestBody
+                                         @Validated SyncReq req, Integer appId) {
+        req.setAppId(appId);
+        return messageSyncService.syncOfflineMessage(req);
     }
 }
