@@ -2,8 +2,8 @@ package org.yangxin.im.service.user.service.impl;
 
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.yangxin.im.codec.pack.user.UserModifyPack;
@@ -14,6 +14,7 @@ import org.yangxin.im.common.enums.DelFlagEnum;
 import org.yangxin.im.common.enums.UserErrorCode;
 import org.yangxin.im.common.enums.command.UserEventCommand;
 import org.yangxin.im.common.exception.ApplicationException;
+import org.yangxin.im.service.group.service.ImGroupService;
 import org.yangxin.im.service.user.dao.ImUserDataEntity;
 import org.yangxin.im.service.user.dao.mapper.ImUserDataMapper;
 import org.yangxin.im.service.user.model.req.*;
@@ -23,18 +24,27 @@ import org.yangxin.im.service.user.service.ImUserService;
 import org.yangxin.im.service.util.CallbackService;
 import org.yangxin.im.service.util.MessageProducer;
 
+import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @SuppressWarnings({"rawtypes", "CallToPrintStackTrace", "unchecked"})
 @Service
-@RequiredArgsConstructor
 public class ImUserviceImpl implements ImUserService {
-    private final ImUserDataMapper imUserDataMapper;
-    private final AppConfig appConfig;
-    private final CallbackService callbackService;
-    private final MessageProducer messageProducer;
+    @Resource
+    CallbackService callbackService;
+    @Resource
+    ImGroupService imGroupService;
+    @Resource
+    ImUserDataMapper imUserDataMapper;
+    @Resource
+    AppConfig appConfig;
+    @Resource
+    MessageProducer messageProducer;
+    @Resource
+    StringRedisTemplate stringRedisTemplate;
 
     @Override
     public ResponseVO importUser(ImportUserReq req) {
@@ -166,10 +176,12 @@ public class ImUserviceImpl implements ImUserService {
             // 通知
             UserModifyPack pack = new UserModifyPack();
             BeanUtils.copyProperties(req, pack);
-            messageProducer.sendToUser(req.getUserId(), req.getClientType(), req.getImei(), UserEventCommand.USER_MODIFY, pack, req.getAppId());
+            messageProducer.sendToUser(req.getUserId(), req.getClientType(), req.getImei(),
+                    UserEventCommand.USER_MODIFY, pack, req.getAppId());
             // 回调
             if (appConfig.isModifyUserAfterCallback()) {
-                callbackService.callback(req.getAppId(), Constants.CallbackCommand.ModifyUserAfter, JSONObject.toJSONString(req));
+                callbackService.callback(req.getAppId(), Constants.CallbackCommand.ModifyUserAfter,
+                        JSONObject.toJSONString(req));
             }
             return ResponseVO.successResponse();
         }
@@ -179,6 +191,16 @@ public class ImUserviceImpl implements ImUserService {
     @Override
     public ResponseVO login(LoginReq req) {
         return ResponseVO.successResponse();
+    }
+
+    @Override
+    public ResponseVO getUserSequence(GetUserSequenceReq req) {
+        Map<Object, Object> map =
+                stringRedisTemplate.opsForHash().entries(req.getAppId() + ":" + Constants.RedisConstants.SeqPrefix +
+                        ":" + req.getUserId());
+        Long groupSeq = imGroupService.getUserGroupMaxSeq(req.getUserId(), req.getAppId());
+        map.put(Constants.SeqConstants.Group, groupSeq);
+        return ResponseVO.successResponse(map);
     }
 
 }

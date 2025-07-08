@@ -479,4 +479,13 @@ public class ImGroupServiceImpl implements ImGroupService {
         return ResponseVO.successResponse(resp);
     }
 
+    @Override
+    public Long getUserGroupMaxSeq(String userId, Integer appId) {
+        ResponseVO<Collection<String>> memberJoinedGroup = groupMemberService.syncMemberJoinedGroup(userId, appId);
+        if (!memberJoinedGroup.isOk()) {
+            throw new ApplicationException(500, "");
+        }
+        return imGroupDataMapper.getGroupMaxSeq(memberJoinedGroup.getData(),
+                appId);
+    }
 }

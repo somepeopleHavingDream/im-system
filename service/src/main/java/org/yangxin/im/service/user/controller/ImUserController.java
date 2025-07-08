@@ -11,6 +11,7 @@ import org.yangxin.im.common.route.RouteHandle;
 import org.yangxin.im.common.route.RouteInfo;
 import org.yangxin.im.common.util.RouteInfoParseUtil;
 import org.yangxin.im.service.user.model.req.DeleteUserReq;
+import org.yangxin.im.service.user.model.req.GetUserSequenceReq;
 import org.yangxin.im.service.user.model.req.ImportUserReq;
 import org.yangxin.im.service.user.model.req.LoginReq;
 import org.yangxin.im.service.user.service.ImUserService;
@@ -55,5 +56,12 @@ public class ImUserController {
             return ResponseVO.successResponse(parse);
         }
         return ResponseVO.errorResponse();
+    }
+
+    @RequestMapping("/getUserSequence")
+    public ResponseVO getUserSequence(@RequestBody @Validated
+                                      GetUserSequenceReq req, Integer appId) {
+        req.setAppId(appId);
+        return imUserService.getUserSequence(req);
     }
 }
