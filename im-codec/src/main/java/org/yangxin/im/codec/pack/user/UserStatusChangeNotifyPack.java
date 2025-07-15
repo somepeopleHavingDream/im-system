@@ -10,5 +10,5 @@ public class UserStatusChangeNotifyPack {
     private Integer appId;
     private String userId;
     private Integer status;
-    private List<UserSession> userSessions;
+    private List<UserSession> client;
 }

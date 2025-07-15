@@ -16,7 +16,7 @@
     <dependencies>
         <dependency>
             <groupId>org.yangxin</groupId>
-            <artifactId>common</artifactId>
+            <artifactId>im-common</artifactId>
             <version>${common.version}</version>
         </dependency>
         <dependency>

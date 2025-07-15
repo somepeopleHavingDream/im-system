@@ -15,8 +15,8 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <modules>
-        <module>common</module>
-        <module>service</module>
+        <module>im-common</module>
+        <module>im-service</module>
         <module>im-tcp</module>
         <module>im-codec</module>
         <module>app-service</module>
