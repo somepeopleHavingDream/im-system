@@ -1,9 +1,11 @@
 package org.yangxin.im.service.user.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.yangxin.im.codec.pack.user.UserCustomStatusChangeNotifyPack;
 import org.yangxin.im.codec.pack.user.UserStatusChangeNotifyPack;
 import org.yangxin.im.common.constant.Constants;
 import org.yangxin.im.common.enums.command.UserEventCommand;
@@ -11,6 +13,7 @@ import org.yangxin.im.common.model.ClientInfo;
 import org.yangxin.im.common.model.UserSession;
 import org.yangxin.im.service.friendship.service.ImFriendService;
 import org.yangxin.im.service.user.model.UserStatusChangeNotifyContent;
+import org.yangxin.im.service.user.model.req.SetUserCustomerStatusReq;
 import org.yangxin.im.service.user.model.req.SubscribeUserOnlineStatusReq;
 import org.yangxin.im.service.user.service.ImUserStatusService;
 import org.yangxin.im.service.util.MessageProducer;
@@ -59,6 +62,21 @@ public class ImUserStatusServiceImpl implements ImUserStatusService {
             String userKey = req.getAppId() + ":" + Constants.RedisConstants.subscribe + ":" + beSubUserId;
             stringRedisTemplate.opsForHash().put(userKey, req.getOperater(), Long.toString(subExpireTime));
         }
+    }
+
+    @Override
+    public void setUserCustomerStatus(SetUserCustomerStatusReq req) {
+        UserCustomStatusChangeNotifyPack userCustomStatusChangeNotifyPack = new UserCustomStatusChangeNotifyPack();
+        userCustomStatusChangeNotifyPack.setCustomStatus(req.getCustomStatus());
+        userCustomStatusChangeNotifyPack.setCustomText(req.getCustomText());
+        userCustomStatusChangeNotifyPack.setUserId(req.getUserId());
+        stringRedisTemplate.opsForValue().set(req.getAppId()
+                        + ":" + Constants.RedisConstants.userCustomerStatus + ":" + req.getUserId()
+                , JSONObject.toJSONString(userCustomStatusChangeNotifyPack));
+
+        syncSender(userCustomStatusChangeNotifyPack,
+                req.getUserId(), new ClientInfo(req.getAppId(), req.getClientType(), req.getImei()));
+        dispatcher(userCustomStatusChangeNotifyPack, req.getUserId(), req.getAppId());
     }
 
     private void syncSender(Object pack, String userId, ClientInfo clientInfo) {

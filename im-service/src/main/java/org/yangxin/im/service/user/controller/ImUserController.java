@@ -72,4 +72,13 @@ public class ImUserController {
         imUserStatusService.subscribeUserOnlineStatus(req);
         return ResponseVO.successResponse();
     }
+
+    @RequestMapping("/setUserCustomerStatus")
+    public ResponseVO setUserCustomerStatus(@RequestBody @Validated
+                                            SetUserCustomerStatusReq req, Integer appId, String identifier) {
+        req.setAppId(appId);
+        req.setOperater(identifier);
+        imUserStatusService.setUserCustomerStatus(req);
+        return ResponseVO.successResponse();
+    }
 }
