@@ -7,10 +7,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
-import org.yangxin.im.common.BaseErrorCode;
 import org.yangxin.im.common.ResponseVO;
 import org.yangxin.im.common.enums.GateWayErrorCode;
-import org.yangxin.im.common.exception.ApplicationExceptionEnum;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -45,11 +43,12 @@ public class GateWayInterceptor implements HandlerInterceptor {
         }
 
         // 签名和操作人和 appid 是否匹配
-        ApplicationExceptionEnum applicationExceptionEnum = identityCheck.checkUserSign(identifier, appIdStr, userSign);
-        if (applicationExceptionEnum != BaseErrorCode.SUCCESS) {
-            resp(ResponseVO.errorResponse(applicationExceptionEnum), response);
-            return false;
-        }
+//        ApplicationExceptionEnum applicationExceptionEnum = identityCheck.checkUserSign(identifier, appIdStr,
+//        userSign);
+//        if (applicationExceptionEnum != BaseErrorCode.SUCCESS) {
+//            resp(ResponseVO.errorResponse(applicationExceptionEnum), response);
+//            return false;
+//        }
 
         return true;
     }

@@ -10,11 +10,9 @@ import org.yangxin.im.common.ResponseVO;
 import org.yangxin.im.common.route.RouteHandle;
 import org.yangxin.im.common.route.RouteInfo;
 import org.yangxin.im.common.util.RouteInfoParseUtil;
-import org.yangxin.im.service.user.model.req.DeleteUserReq;
-import org.yangxin.im.service.user.model.req.GetUserSequenceReq;
-import org.yangxin.im.service.user.model.req.ImportUserReq;
-import org.yangxin.im.service.user.model.req.LoginReq;
+import org.yangxin.im.service.user.model.req.*;
 import org.yangxin.im.service.user.service.ImUserService;
+import org.yangxin.im.service.user.service.ImUserStatusService;
 import org.yangxin.im.service.util.ZKit;
 
 import java.util.List;
@@ -28,6 +26,7 @@ public class ImUserController {
     private final ImUserService imUserService;
     private final RouteHandle routeHandle;
     private final ZKit zkKit;
+    private final ImUserStatusService imUserStatusService;
 
     @RequestMapping("importUser")
     public ResponseVO importUser(@RequestBody ImportUserReq req, Integer appId) {
@@ -63,5 +62,14 @@ public class ImUserController {
                                       GetUserSequenceReq req, Integer appId) {
         req.setAppId(appId);
         return imUserService.getUserSequence(req);
+    }
+
+    @RequestMapping("/subscribeUserOnlineStatus")
+    public ResponseVO subscribeUserOnlineStatus(@RequestBody @Validated
+                                                SubscribeUserOnlineStatusReq req, Integer appId, String identifier) {
+        req.setAppId(appId);
+        req.setOperater(identifier);
+        imUserStatusService.subscribeUserOnlineStatus(req);
+        return ResponseVO.successResponse();
     }
 }
