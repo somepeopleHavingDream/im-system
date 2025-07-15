@@ -38,4 +38,23 @@ public class UserSessionUtil {
         Object o = stringRedisTemplate.opsForHash().get(userSessionKey, hashKey);
         return JSONObject.parseObject((String) o, UserSession.class);
     }
+
+    public List<UserSession> getUserSession(Integer appId, String userId) {
+
+        String userSessionKey = appId + Constants.RedisConstants.UserSessionConstants
+                + userId;
+        Map<Object, Object> entries =
+                stringRedisTemplate.opsForHash().entries(userSessionKey);
+        List<UserSession> list = new ArrayList<>();
+        Collection<Object> values = entries.values();
+        for (Object o : values) {
+            String str = (String) o;
+            UserSession session =
+                    JSONObject.parseObject(str, UserSession.class);
+            if (Objects.equals(session.getConnectState(), ImConnectStatusEnum.ONLINE_STATUS.getCode())) {
+                list.add(session);
+            }
+        }
+        return list;
+    }
 }
