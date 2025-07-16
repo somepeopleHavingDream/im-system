@@ -17,18 +17,24 @@ import java.util.Map;
 public class CallbackService {
     private final HttpRequestUtils httpRequestUtils;
     private final AppConfig appConfig;
+    private final ShareThreadPool shareThreadPool;
 
     public void callback(Integer appId, String callbackCommand, String jsonBody) {
-        try {
-            httpRequestUtils.doPost(appConfig.getCallbackUrl(), Object.class, builderUrlParams(appId, callbackCommand), jsonBody, null);
-        } catch (Exception e) {
-            log.error("callback error {} {} {}", appId, callbackCommand, jsonBody, e);
-        }
+        shareThreadPool.submit(() -> {
+            try {
+                httpRequestUtils.doPost(appConfig.getCallbackUrl(), Object.class, builderUrlParams(appId,
+                                callbackCommand),
+                        jsonBody, null);
+            } catch (Exception e) {
+                log.error("callback 回调{} : {}出现异常 ： {} ", callbackCommand, appId, e.getMessage());
+            }
+        });
     }
 
     public ResponseVO beforeCallback(Integer appId, String callbackCommand, String jsonBody) {
         try {
-            return httpRequestUtils.doPost("", ResponseVO.class, builderUrlParams(appId, callbackCommand), jsonBody, null);
+            return httpRequestUtils.doPost("", ResponseVO.class, builderUrlParams(appId, callbackCommand), jsonBody,
+                    null);
         } catch (Exception e) {
             log.error("beforeCallback error {} {} {}", appId, callbackCommand, jsonBody, e);
             return ResponseVO.successResponse();

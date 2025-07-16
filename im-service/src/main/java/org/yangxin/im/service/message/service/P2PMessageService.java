@@ -1,11 +1,13 @@
 package org.yangxin.im.service.message.service;
 
+import com.alibaba.fastjson.JSONObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.yangxin.im.codec.pack.message.ChatMessageAck;
 import org.yangxin.im.codec.pack.message.MessageReceiveServerAckPack;
 import org.yangxin.im.common.ResponseVO;
+import org.yangxin.im.common.config.AppConfig;
 import org.yangxin.im.common.constant.Constants;
 import org.yangxin.im.common.enums.ConversationTypeEnum;
 import org.yangxin.im.common.enums.command.MessageCommand;
@@ -15,6 +17,7 @@ import org.yangxin.im.common.model.message.OfflineMessageContent;
 import org.yangxin.im.service.message.model.req.SendMessageReq;
 import org.yangxin.im.service.message.model.resp.SendMessageResp;
 import org.yangxin.im.service.seq.RedisSeq;
+import org.yangxin.im.service.util.CallbackService;
 import org.yangxin.im.service.util.ConversationIdGenerate;
 import org.yangxin.im.service.util.MessageProducer;
 
@@ -37,6 +40,10 @@ public class P2PMessageService {
     private MessageStoreService messageStoreService;
     @Resource
     private RedisSeq redisSeq;
+    @Resource
+    private AppConfig appConfig;
+    @Resource
+    private CallbackService callbackService;
 
     private final ThreadPoolExecutor threadPoolExecutor;
 
@@ -71,6 +78,19 @@ public class P2PMessageService {
             return;
         }
 
+        //回调
+        ResponseVO responseVO = ResponseVO.successResponse();
+        if (appConfig.isSendMessageAfterCallback()) {
+            responseVO = callbackService.beforeCallback(messageContent.getAppId(),
+                    Constants.CallbackCommand.SendMessageBefore
+                    , JSONObject.toJSONString(messageContent));
+        }
+
+        if (!responseVO.isOk()) {
+            ack(messageContent, responseVO);
+            return;
+        }
+
         long seq =
                 redisSeq.doGetSeq(messageContent.getAppId() + ":" + Constants.SeqConstants.Message + ":" + ConversationIdGenerate.generateP2PId(messageContent.getFromId(), messageContent.getToId()));
         messageContent.setMessageSequence(seq);
@@ -96,6 +116,11 @@ public class P2PMessageService {
             if (clientInfos.isEmpty()) {
                 // 发送接受确认给发送方，要带上是服务端发送的标识
                 receiveAck(messageContent);
+            }
+
+            if (appConfig.isSendMessageAfterCallback()) {
+                callbackService.callback(messageContent.getAppId(), Constants.CallbackCommand.SendMessageAfter,
+                        JSONObject.toJSONString(messageContent));
             }
         });
     }
