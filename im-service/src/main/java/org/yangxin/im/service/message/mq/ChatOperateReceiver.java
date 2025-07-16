@@ -2,6 +2,7 @@ package org.yangxin.im.service.message.mq;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
 import com.rabbitmq.client.Channel;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,12 +20,14 @@ import org.yangxin.im.common.enums.command.MessageCommand;
 import org.yangxin.im.common.model.message.MessageContent;
 import org.yangxin.im.common.model.message.MessageReadedContent;
 import org.yangxin.im.common.model.message.MessageReceiveAckContent;
+import org.yangxin.im.common.model.message.RecallMessageContent;
 import org.yangxin.im.service.message.service.MessageSyncService;
 import org.yangxin.im.service.message.service.P2PMessageService;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Objects;
 
 @Component
 @Slf4j
@@ -57,6 +60,11 @@ public class ChatOperateReceiver {
             } else if (command.equals(MessageCommand.MSG_READED.getCommand())) {
                 MessageReadedContent messageContent = jsonObject.toJavaObject(MessageReadedContent.class);
                 messageSyncService.readMark(messageContent);
+            } else if (Objects.equals(command, MessageCommand.MSG_RECALL.getCommand())) {
+//                撤回消息
+                RecallMessageContent messageContent = JSON.parseObject(msg, new TypeReference<RecallMessageContent>() {
+                }.getType());
+                messageSyncService.recallMessage(messageContent);
             }
             channel.basicAck(deliveryTag, false);
         } catch (Exception e) {
