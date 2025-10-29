@@ -42,33 +42,47 @@ public class ConversationService {
     }
 
     public void messageMarkRead(MessageReadedContent messageReadedContent) {
+        // 获取 toId
         String toId = messageReadedContent.getToId();
         if (messageReadedContent.getConversationType() == ConversationTypeEnum.GROUP.getCode()) {
             toId = messageReadedContent.getGroupId();
         }
+
+        // 获取 conversationId
         String conversationId = convertConversationId(messageReadedContent.getConversationType(),
                 messageReadedContent.getFromId(), toId);
 
+        // 获取 im_conversation_set 记录
         QueryWrapper<ImConversationSetEntity> query = new QueryWrapper<>();
         query.eq("conversation_id", conversationId);
         query.eq("app_id", messageReadedContent.getAppId());
         ImConversationSetEntity imConversationSetEntity = imConversationSetMapper.selectOne(query);
+
+        // 如果不存在 im_conversation_set 记录
         if (imConversationSetEntity == null) {
-            imConversationSetEntity = new ImConversationSetEntity();
             long seq = redisSeq.doGetSeq(messageReadedContent.getAppId() + ":" + Constants.SeqConstants.Conversation);
+
+            // 插入一条 im_conversation_set 记录
+            imConversationSetEntity = new ImConversationSetEntity();
             imConversationSetEntity.setConversationId(conversationId);
             BeanUtils.copyProperties(messageReadedContent, imConversationSetEntity);
             imConversationSetEntity.setReadedSequence(messageReadedContent.getMessageSequence());
             imConversationSetEntity.setToId(toId);
             imConversationSetEntity.setSequence(seq);
             imConversationSetMapper.insert(imConversationSetEntity);
+
+            // 更新用户序号
             writeUserSeq.writeUserSeq(messageReadedContent.getAppId(),
                     messageReadedContent.getFromId(), Constants.SeqConstants.Conversation, seq);
         } else {
             long seq = redisSeq.doGetSeq(messageReadedContent.getAppId() + ":" + Constants.SeqConstants.Conversation);
+
+            // 更新已读序号
             imConversationSetEntity.setSequence(seq);
             imConversationSetEntity.setReadedSequence(messageReadedContent.getMessageSequence());
             imConversationSetMapper.readMark(imConversationSetEntity);
+
+            // 更新用户序号
             writeUserSeq.writeUserSeq(messageReadedContent.getAppId(),
                     messageReadedContent.getFromId(), Constants.SeqConstants.Conversation, seq);
         }
